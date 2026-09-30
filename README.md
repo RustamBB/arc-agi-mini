@@ -6,7 +6,7 @@ Use it to build datasets for models that learn to infer operation sequences from
 
 ```
 pip install numpy pytest
-python -m arcgen list-ops                       # the operation bank (97 ops)
+python -m arcgen list-ops                       # the operation bank (108 ops)
 python -m arcgen show --n 3 --max-len 3         # look at a few tasks
 python -m arcgen generate --n 10000 --out data --seed 0
 ```
@@ -98,9 +98,10 @@ ARC-AGI-2 training set (1000 tasks):
 | 55 ops | 6.2% | – |
 | 71 ops (+relational) | 7.4% | 9.1% |
 | 90 ops (+gap-driven) | – | 10.9% |
-| 97 ops | – | 11.8% (union of 3 stochastic runs: 140 tasks = 14%) |
+| 97 ops | – | 11.8% |
+| 108 ops (+round 2) | – | 12.1% (union of 4 stochastic runs: 151 tasks = 15.1%) |
 
-`examples/real_task_programs.jsonl` holds the 140 programs found (train-verified) — real-task annotations in the
+`examples/real_task_programs.jsonl` holds the programs found (union of all runs) (train-verified) — real-task annotations in the
 same format as the synthetic dataset. The search is stochastic and time-budgeted, so runs differ by a few tasks.
 
 Workflow used to grow the bank: run the search → look at the unsolved tasks with the smallest residual error
