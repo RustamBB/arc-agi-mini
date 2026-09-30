@@ -238,3 +238,34 @@ def test_shape_changing_ops():
     assert eq(a("color_histogram", "1112 0000", vertical=False), "111 200")
     assert eq(a("color_histogram", "1112 0000", vertical=True), "10 10 12")
     assert eq(a("pool", "1100 1100 0010 0000", k=2, mode="major"), "10 00")
+
+
+def test_round2_ops():
+    a = lambda name, g, **p: apply_step(G(g), name, p)
+    eq = lambda x, y: (x == G(y)).all()
+    assert eq(a("react_touching", "320 000 050", a=3, b=2, color=8), "800 000 050")
+    assert eq(a("recolor_mirrored", "1201 0000", axis=1, color=7), "7207 0000")
+    assert eq(a("keep_center_line", "123 456 789", axis=1), "020 050 080")
+    assert eq(a("keep_center_line", "123 456 789", axis=0), "000 456 000")
+    assert eq(a("crop_object_only", "110 002 000", sel={"by": "largest"}, seg="c8"), "11")
+    assert eq(a("concat_with", "12 34", axis=1, tf="flip_h", swap=False), "1221 3443")
+    assert eq(a("concat_with", "12 34", axis=0, tf="rot180", swap=True), "43 21 12 34")
+    assert eq(a("self_logic", "1200", tf="flip_h", mode="or", color=5), "5555")
+    assert eq(a("self_logic", "1200", tf="flip_h", mode="and", color=5), "0000")
+    assert eq(a("recolor_by_frequency_rank", "1112 2000", colors=[5, 6]), "5556 6000")
+    assert eq(a("swap_extreme_colors", "1112"), "2221")
+    assert eq(a("bbox_frame_all", "000 010 000", color=4, pad=1), "444 414 444")
+    assert eq(a("majority_filter", "111 121 111", conn=8), "111 111 111")
+    assert eq(a("mark_centers", "111 111 111", sel={"by": "all"}, seg="c8", color=4), "111 141 111")
+    assert eq(a("connect_pairs", "1000 0000 1000", src=1, line=-1, axis=0), "1000 0000 1000")
+    assert eq(a("connect_pairs", "1000 0000 1000", src=1, line=-1, axis=1), "1000 1000 1000")
+    assert eq(a("connect_diag", "1000 0000 0010", src=-1, line=-1), "1000 0100 0010")
+
+
+def test_new_selectors():
+    g = G("1010 0000 0220")
+    r = lambda sel: apply_step(g, "recolor_objects", {"sel": sel, "seg": "c8", "color": 7})
+    assert (r({"by": "common_shape"}) == G("7070 0000 0220")).all()
+    ring = G("111 101 111 000 200")
+    assert (apply_step(ring, "recolor_objects", {"sel": {"by": "holes_eq", "value": 1}, "seg": "c8",
+                                                 "color": 7}) == G("777 707 777 000 200")).all()

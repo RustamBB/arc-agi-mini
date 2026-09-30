@@ -15,7 +15,7 @@ from .ops.base import enumerate_selectors
 from .program import _plain, apply_step, same
 
 # parameter names that hold an *output* colour / a colour that exists in the grid
-OUT_COLOR_KEYS = {"color", "dst"}
+OUT_COLOR_KEYS = {"color", "dst", "yes", "no"}
 IN_COLOR_KEYS = {"src", "a", "b", "mask", "seed", "marker", "mover", "target", "line", "touch"}
 
 

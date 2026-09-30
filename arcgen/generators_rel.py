@@ -289,3 +289,12 @@ def gen_parts(rng, pal, h, w, hint):
 
 
 GENERATORS.update({"periodic": gen_periodic, "parts": gen_parts})
+
+
+def gen_odd(rng, pal, h, w, hint):
+    """Sparse grid with odd height and width (for centre-line ops)."""
+    h, w = h | 1, w | 1
+    return np.where(rng.random((h, w)) < .35, rng.choice(pal, size=(h, w)), BG)
+
+
+GENERATORS["odd"] = gen_odd

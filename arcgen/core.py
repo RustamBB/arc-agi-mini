@@ -187,6 +187,12 @@ def select(objs: list[Obj], sel: dict, shape, g=None) -> list[Obj]:
             cnt[o.color] = cnt.get(o.color, 0) + 1
         t = max(cnt.values()) if by == "common_color" else min(cnt.values())
         return [o for o in objs if cnt[o.color] == t]
+    if by == "common_shape":
+        cnt = {}
+        for o in objs:
+            cnt[shape_key(o)] = cnt.get(shape_key(o), 0) + 1
+        t = max(cnt.values())
+        return [o for o in objs if cnt[shape_key(o)] == t]
     if by in ("dup_shape", "unique_shape"):
         cnt = {}
         for o in objs:
@@ -194,6 +200,7 @@ def select(objs: list[Obj], sel: dict, shape, g=None) -> list[Obj]:
         return [o for o in objs if (cnt[shape_key(o)] > 1) == (by == "dup_shape")]
     tests = {
         "touching": lambda o: g is not None and _touching(o, g, v),
+        "holes_eq": lambda o: o.n_holes() == v,
         "square": lambda o: o.is_rect and o.h == o.w,
         "symmetric": lambda o: bool((o.mask() == o.mask()[:, ::-1]).all()
                                     or (o.mask() == o.mask()[::-1]).all()),

@@ -107,22 +107,22 @@ def full_lines(g, src, dir):
 
 
 @op("connect_diag", "line",
-    lambda rng, g: {"src": pick_present(rng, g), "line": -1 if rng.random() < .5 else pick_color(rng)},
+    lambda rng, g: {"src": -1 if rng.random() < .3 else pick_present(rng, g),
+                    "line": -1 if rng.random() < .5 else pick_color(rng)},
     gens=("few",))
 def connect_diag(g, src, line):
     """Join same-colour cells lying on a common diagonal with a diagonal line."""
     out = g.copy()
-    lc = src if line < 0 else line
-    ys, xs = np.nonzero(g == src)
+    ys, xs = np.nonzero(g == src) if src >= 0 else np.nonzero(g != BG)
     pts = list(zip(ys.tolist(), xs.tolist()))
     for (a, b) in pts:
         for (c, d) in pts:
-            if c > a and abs(c - a) == abs(d - b):
+            if c > a and abs(c - a) == abs(d - b) and g[a, b] == g[c, d]:
                 sx = 1 if d > b else -1
                 between = [(a + k, b + sx * k) for k in range(1, c - a)]
                 if all(g[y, x] == BG for y, x in between):
                     for y, x in between:
-                        out[y, x] = lc
+                        out[y, x] = g[a, b] if line < 0 else line
     return out
 
 

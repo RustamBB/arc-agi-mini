@@ -67,6 +67,8 @@ def sample_sel(rng, g, seg) -> dict:
         sel = {"by": by}
         if by in ("color", "not_color", "touching"):
             sel["value"] = pick_present(rng, g)
+        elif by == "holes_eq":
+            sel["value"] = int(rng.integers(0, 3))
         elif by in ("size_gt", "size_lt", "size_eq"):
             sel["value"] = int(rng.choice(sizes))
         chosen = select(objs, sel, g.shape, g)
@@ -82,6 +84,7 @@ _SEL_W = {
     # relational / contextual selectors
     "leftmost": 4, "rightmost": 4, "topmost": 4, "bottommost": 4, "common_color": 3,
     "rare_color": 3, "touching": 6, "square": 2, "symmetric": 2, "dup_shape": 4, "unique_shape": 4,
+    "common_shape": 3, "holes_eq": 3,
 }
 _SEL = list(_SEL_W)
 _SEL_P = np.array(list(_SEL_W.values()), dtype=float)
@@ -99,6 +102,7 @@ def enumerate_selectors(g, seg) -> list[dict]:
                                                   "touching")]
     cands += [{"by": b, "value": c} for b in ("color", "not_color", "touching") for c in cols]
     cands += [{"by": b, "value": s} for b in ("size_eq", "size_gt", "size_lt") for s in sizes]
+    cands += [{"by": "holes_eq", "value": k} for k in range(3)]
     out, seen = [], set()
     for sel in cands:
         ch = select(objs, sel, g.shape, g)
