@@ -15,7 +15,7 @@ import torch.nn.functional as F
 
 from .serialize import Tokenizer, lex
 
-MAXLEN = 1024
+MAXLEN = 1024  # default; eval/predict read the real limit from the model (cfg['maxlen'] - 128)
 N_SEG = 24
 NCOORD = 32
 

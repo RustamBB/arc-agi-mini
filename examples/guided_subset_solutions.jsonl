@@ -1,0 +1,22 @@
+{"id": "070dd51e", "how": "ops", "program": [{"op": "connect_pairs", "params": {"src": -1, "line": -1, "axis": 1}}, {"op": "draw_rect_between", "params": {"fill": true, "color": -1}}]}
+{"id": "1190e5a7", "how": "ops", "program": [{"op": "cells_to_pixels", "params": {}}]}
+{"id": "1cf80156", "how": "beam", "program": [{"op": "crop_to_content", "params": {}}]}
+{"id": "22168020", "how": "beam", "program": [{"op": "connect_pairs", "params": {"src": -1, "line": -1, "axis": 0}}]}
+{"id": "22eb0ac0", "how": "beam", "program": [{"op": "connect_pairs", "params": {"src": -1, "line": -1, "axis": 0}}]}
+{"id": "253bf280", "how": "ops", "program": [{"op": "connect_pairs", "params": {"src": 8, "line": 3, "axis": 2}}]}
+{"id": "496994bd", "how": "ops", "program": [{"op": "symmetrize", "params": {"mode": "v"}}]}
+{"id": "5614dbcf", "how": "model", "program": [{"op": "majority_filter", "params": {"conn": 8}}, {"op": "pool", "params": {"k": 3, "mode": "any"}}]}
+{"id": "5b6cbef5", "how": "model", "program": [{"op": "fractal", "params": {}}, {"op": "swap_colors", "params": {"a": 3, "b": 3}}]}
+{"id": "810b9b61", "how": "skeleton", "program": [{"op": "recolor_by_holes", "params": {"colors": [1, 3, 1], "seg": "m4"}}]}
+{"id": "88a10436", "how": "skeleton", "program": [{"op": "stamp_template", "params": {"marker": 5, "recolor": false}}]}
+{"id": "a68b268e", "how": "model", "program": [{"op": "overlay_cells", "params": {"order": "fwd"}}]}
+{"id": "a8610ef7", "how": "beam", "program": [{"op": "recolor_mirrored", "params": {"axis": 0, "color": 2}}, {"op": "recolor", "params": {"src": 8, "dst": 5}}]}
+{"id": "b1948b0a", "how": "beam", "program": [{"op": "recolor", "params": {"src": 6, "dst": 2}}]}
+{"id": "be94b721", "how": "skeleton", "program": [{"op": "crop_object_only", "params": {"sel": {"by": "largest"}, "seg": "m4"}}]}
+{"id": "c59eb873", "how": "ops", "program": [{"op": "scale_up", "params": {"k": 2}}]}
+{"id": "ce4f8723", "how": "ops", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "or", "color": 3}}]}
+{"id": "dae9d2b5", "how": "ops", "program": [{"op": "overlay_parts", "params": {"ny": 1, "nx": 2, "order": []}}, {"op": "recolor_by_holes", "params": {"colors": [6, 6, 6], "seg": "m8"}}]}
+{"id": "e98196ab", "how": "beam", "program": [{"op": "overlay_cells", "params": {"order": "fwd"}}]}
+{"id": "ea32f347", "how": "beam", "program": [{"op": "recolor_by_size_rank", "params": {"colors": [1, 4, 2], "seg": "m4"}}]}
+{"id": "f823c43c", "how": "model", "program": [{"op": "repair_tiling", "params": {"mask": 6, "crop": false}}, {"op": "symmetrize", "params": {"mode": "v"}}]}
+{"id": "f8ff0b80", "how": "model", "program": [{"op": "colors_by_frequency", "params": {}}]}

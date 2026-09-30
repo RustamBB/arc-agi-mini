@@ -11,16 +11,17 @@ from pathlib import Path
 import numpy as np
 import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from arcgen.model import MAXLEN, Encoder, load  # noqa: E402
+from arcgen.model import Encoder, load  # noqa: E402
 from arcgen.serialize import check_program  # noqa: E402
 
 
 def predict(model, enc, train, query, n, temp):
+    maxlen = model.cfg["maxlen"] - 128
     """Returns (list of distinct program texts, n_demos used) or (None, 0) if the prompt cannot fit."""
     demos = list(train)
     while demos:
         p = enc.prompt(demos, query)
-        if len(p[0]) <= MAXLEN - 100:
+        if len(p[0]) <= maxlen - 100:
             break
         demos.pop()
     if not demos:
@@ -40,10 +41,10 @@ def main():
     ap.add_argument("--synthetic"); ap.add_argument("--real"); ap.add_argument("--out", default="")
     ap.add_argument("--n", type=int, default=200); ap.add_argument("--samples", type=int, default=24)
     ap.add_argument("--temp", type=float, default=0.8); ap.add_argument("--threads", type=int, default=4)
-    ap.add_argument("--shard", default="0/1")
+    ap.add_argument("--shard", default="0/1"); ap.add_argument("--device", default="cpu")
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
-    model, enc = load(a.model), Encoder()
+    model, enc = load(a.model, a.device), Encoder()
     si, sk = map(int, a.shard.split("/"))
     res, t0 = {}, time.time()
     if a.synthetic:
@@ -90,4 +91,5 @@ def _parses(t):
         return False
 
 
-main()
+if __name__ == "__main__":
+    main()

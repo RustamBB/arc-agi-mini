@@ -52,7 +52,7 @@ def _guide(rng, params, out_colors, in_colors, g=None, sels=None):
     return p
 
 
-def search(pairs, depth=3, beam=4, tries=60, top=24, budget=30.0, seed=0, ops=None):
+def search(pairs, depth=3, beam=4, tries=60, top=24, budget=30.0, seed=0, ops=None, ops_by_depth=None):
     """Returns (program or None, best_total_error, best_program)."""
     rng = np.random.default_rng(seed)
     ins = [np.asarray(a) for a, _ in pairs]
@@ -67,7 +67,11 @@ def search(pairs, depth=3, beam=4, tries=60, top=24, budget=30.0, seed=0, ops=No
     if best[2] == 0:
         return [], 0, []
     seen = {ins[0].tobytes() + bytes(ins[0].shape)}
-    for _ in range(depth):
+    if ops_by_depth:
+        depth = len(ops_by_depth)
+    for d in range(depth):
+        if ops_by_depth:
+            names = list(ops_by_depth[d])
         cands = []
         for prog, grids, cur in frontier:
             g0 = grids[0]

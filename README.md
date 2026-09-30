@@ -145,3 +145,23 @@ so a few programs may be spurious (e.g. no-op steps such as `swap_colors(a=3,b=3
 Obvious next levers (not done): more/larger data and longer training (loss was still falling), a bigger model / GPU,
 dropping no-op steps from the sampler, sampling more candidates (best-of-256), and combining the model's
 proposals with the beam search (use sampled programs as a prior / starting points for the search).
+
+## Model + search hybrid (`arcgen/guided.py`, `tools/guided_search.py`)
+
+The model only has to say *which ops*; the beam search finds *which parameters*. Per task: sample 48 programs →
+(1) a sample that already reproduces the demos, (2) fix the most frequent **op skeletons** and search their
+parameters, (3) search restricted to the model's ops, (4) fall back to unrestricted beam search.
+Evaluated on a fixed subset of 125 real tasks (every 8th), ~40 s of CPU per task in total:
+
+| method | solved (train-verified) |
+|---|---|
+| model alone (32 samples) | 6 |
+| unrestricted beam search, 3 independent runs | 16, 20, 20 |
+| model-restricted search only (20 s) | 16 (on the 102 tasks whose prompt fit; beam: 20) |
+| **hybrid** (10 s model-guided + 28 s beam) | **22** |
+| hybrid ∪ one beam run | 23 |
+
+Take-aways: restricting the search to the model's guesses *hurts* (a weak model excludes the right op); using the
+guesses as a cheap first stage in front of the full search gives a small gain (+2 to +6 tasks of 125, i.e. a few
+points — with n=125 this is suggestive, not conclusive). The gain should grow with a better model:
+see `docs/GPU_TRAINING.md`. Solutions: `examples/guided_subset_solutions.jsonl`.
