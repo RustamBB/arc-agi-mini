@@ -6,7 +6,7 @@ Use it to build datasets for models that learn to infer operation sequences from
 
 ```
 pip install numpy pytest
-python -m arcgen list-ops                       # the operation bank (71 ops)
+python -m arcgen list-ops                       # the operation bank (97 ops)
 python -m arcgen show --n 3 --max-len 3         # look at a few tasks
 python -m arcgen generate --n 10000 --out data --seed 0
 ```
@@ -78,8 +78,30 @@ Object ops also gained relational **selectors**: `leftmost/rightmost/topmost/bot
 
 ### Measuring against real ARC data
 
+Two tools, both take an ARC `*_challenges.json` (a dict of `{id: {train, test}}`):
+
 ```
-python tools/coverage.py arc-agi_training_challenges.json --tries 40
+python tools/coverage.py   challenges.json            # single op, random parameters (fast, ~5 min)
+python tools/search_cov.py challenges.json --out r.json --budget 40   # target-guided beam search, depth 3 (~35 min, 4 cores)
+python tools/peek.py challenges.json r.json 12        # print unsolved tasks side by side (find what the bank lacks)
 ```
-Counts how many real tasks are solved by a *single* bank op with randomly searched parameters
-(a lower bound, comparable between bank versions). ARC-AGI-2 training set (1000 tasks): 6.2% with the 55 base ops → 7.4% with the 71-op bank incl. relational ops.
+
+`arcgen/search.py` is a beam search that keeps the programs whose outputs are closest to the targets
+(cell-wise error; colour parameters are biased towards colours of the target, selectors are enumerated from the
+real objects). A task counts as *covered* if the program reproduces **every train output** — the tests' outputs are
+not in the file, so this is a lower bound on expressiveness and can include programs that overfit the train pairs.
+
+ARC-AGI-2 training set (1000 tasks):
+
+| bank | single op | beam search |
+|---|---|---|
+| 55 ops | 6.2% | – |
+| 71 ops (+relational) | 7.4% | 9.1% |
+| 90 ops (+gap-driven) | – | 10.9% |
+| 97 ops | – | 11.8% (union of 3 stochastic runs: 140 tasks = 14%) |
+
+`examples/real_task_programs.jsonl` holds the 140 programs found (train-verified) — real-task annotations in the
+same format as the synthetic dataset. The search is stochastic and time-budgeted, so runs differ by a few tasks.
+
+Workflow used to grow the bank: run the search → look at the unsolved tasks with the smallest residual error
+(`tools/peek.py`) → add the missing concept as an op + generator + test → re-measure.
