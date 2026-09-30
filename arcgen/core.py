@@ -129,8 +129,21 @@ def find_objects(g: np.ndarray, seg: str = "c8") -> list[Obj]:
     return objs
 
 
-def select(objs: list[Obj], sel: dict, shape) -> list[Obj]:
-    """Choose objects with a declarative selector, e.g. ``{"by": "largest"}``."""
+def shape_key(o: Obj):
+    return (o.mask().tobytes(), o.h, o.w)
+
+
+def _touching(o: Obj, g, v) -> bool:
+    m = np.zeros(g.shape, dtype=bool)
+    m[o.rows, o.cols] = True
+    ring = dilate_mask(m, 8) & ~m
+    return bool((g[ring] == v).any())
+
+
+def select(objs: list[Obj], sel: dict, shape, g=None) -> list[Obj]:
+    """Choose objects with a declarative selector, e.g. ``{"by": "largest"}``.
+
+    Relational selectors (``touching``) need the grid ``g``."""
     if not objs:
         return []
     by = sel["by"]
@@ -149,7 +162,27 @@ def select(objs: list[Obj], sel: dict, shape) -> list[Obj]:
     if by == "widest":
         m = max(o.w for o in objs)
         return [o for o in objs if o.w == m]
+    ext = {"leftmost": lambda o: o.c0, "topmost": lambda o: o.r0,
+           "rightmost": lambda o: -o.c1, "bottommost": lambda o: -o.r1}
+    if by in ext:
+        m = min(ext[by](o) for o in objs)
+        return [o for o in objs if ext[by](o) == m]
+    if by in ("common_color", "rare_color"):
+        cnt: dict = {}
+        for o in objs:
+            cnt[o.color] = cnt.get(o.color, 0) + 1
+        t = max(cnt.values()) if by == "common_color" else min(cnt.values())
+        return [o for o in objs if cnt[o.color] == t]
+    if by in ("dup_shape", "unique_shape"):
+        cnt = {}
+        for o in objs:
+            cnt[shape_key(o)] = cnt.get(shape_key(o), 0) + 1
+        return [o for o in objs if (cnt[shape_key(o)] > 1) == (by == "dup_shape")]
     tests = {
+        "touching": lambda o: g is not None and _touching(o, g, v),
+        "square": lambda o: o.is_rect and o.h == o.w,
+        "symmetric": lambda o: bool((o.mask() == o.mask()[:, ::-1]).all()
+                                    or (o.mask() == o.mask()[::-1]).all()),
         "color": lambda o: o.color == v,
         "not_color": lambda o: o.color != v,
         "size_eq": lambda o: o.size == v,

@@ -11,7 +11,7 @@ DIRS = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
 
 def _pick(g, seg, sel):
     objs = find_objects(g, seg)
-    return objs, select(objs, sel, g.shape)
+    return objs, select(objs, sel, g.shape, g)
 
 
 def _os(rng, g, **extra):
@@ -161,14 +161,18 @@ def fill_holes(g, color):
     return np.where(enclosed, color, g)
 
 
-@op("outline_objects", "object", lambda rng, g: _os(rng, g, color=pick_color(rng)))
+def _own_or(rng):
+    return -1 if rng.random() < .3 else pick_color(rng)  # -1: the object's own colour
+
+
+@op("outline_objects", "object", lambda rng, g: _os(rng, g, color=_own_or(rng)))
 def outline_objects(g, sel, seg, color):
-    """Draw a one-cell halo around the selected objects."""
+    """Draw a one-cell halo around the selected objects (colour -1: their own)."""
     out = g.copy()
     for o in _pick(g, seg, sel)[1]:
         m = np.zeros(g.shape, dtype=bool)
         m[o.rows, o.cols] = True
-        out[dilate_mask(m, 8) & (g == BG)] = color
+        out[dilate_mask(m, 8) & (g == BG)] = o.color if color < 0 else color
     return out
 
 
@@ -182,7 +186,7 @@ def bbox_fill(g, sel, seg, color):
     return out
 
 
-@op("frame_objects", "object", lambda rng, g: _os(rng, g, color=pick_color(rng)))
+@op("frame_objects", "object", lambda rng, g: _os(rng, g, color=_own_or(rng)))
 def frame_objects(g, sel, seg, color):
     """Draw a rectangular frame one cell outside each selected object's bounding box."""
     out = g.copy()
@@ -192,7 +196,7 @@ def frame_objects(g, sel, seg, color):
             for c in range(o.c0 - 1, o.c1 + 2):
                 edge = r in (o.r0 - 1, o.r1 + 1) or c in (o.c0 - 1, o.c1 + 1)
                 if edge and 0 <= r < h and 0 <= c < w and g[r, c] == BG:
-                    out[r, c] = color
+                    out[r, c] = o.color if color < 0 else color
     return out
 
 

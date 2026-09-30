@@ -9,7 +9,7 @@ import numpy as np
 from ..core import BG, find_objects, select
 
 MAX_SEL_SIZE = 60  # keeps size thresholds inside the tokenizer's integer vocabulary
-DEFAULT_GENS = ("objects", "sparse", "few", "noise", "rings")
+DEFAULT_GENS = ("objects", "sparse", "few", "noise", "rings", "shapes")
 
 
 @dataclass
@@ -65,19 +65,24 @@ def sample_sel(rng, g, seg) -> dict:
     for _ in range(30):
         by = str(rng.choice(_SEL, p=_SEL_P))
         sel = {"by": by}
-        if by in ("color", "not_color"):
+        if by in ("color", "not_color", "touching"):
             sel["value"] = pick_present(rng, g)
         elif by in ("size_gt", "size_lt", "size_eq"):
             sel["value"] = int(rng.choice(sizes))
-        chosen = select(objs, sel, g.shape)
+        chosen = select(objs, sel, g.shape, g)
         if 0 < len(chosen) and (by == "all" or len(chosen) < len(objs)):
             return sel
     return {"by": "all"}
 
 
-_SEL = ["largest", "smallest", "color", "not_color", "size_gt", "size_lt", "size_eq",
-        "touches_border", "inner", "rect", "not_rect", "has_hole", "no_hole",
-        "tallest", "widest", "all", "multicolor"]
-_W = np.array([10, 10, 14, 4, 8, 8, 4, 6, 6, 5, 5, 6, 4, 3, 3, 3, 2], dtype=float)
-_SEL_P = _W / _W.sum()
-assert len(_SEL) == len(_SEL_P)
+_SEL_W = {
+    "largest": 10, "smallest": 10, "color": 14, "not_color": 4, "size_gt": 8, "size_lt": 8,
+    "size_eq": 4, "touches_border": 6, "inner": 6, "rect": 5, "not_rect": 5, "has_hole": 6,
+    "no_hole": 4, "tallest": 3, "widest": 3, "all": 3, "multicolor": 2,
+    # relational / contextual selectors
+    "leftmost": 4, "rightmost": 4, "topmost": 4, "bottommost": 4, "common_color": 3,
+    "rare_color": 3, "touching": 6, "square": 2, "symmetric": 2, "dup_shape": 4, "unique_shape": 4,
+}
+_SEL = list(_SEL_W)
+_SEL_P = np.array(list(_SEL_W.values()), dtype=float)
+_SEL_P /= _SEL_P.sum()

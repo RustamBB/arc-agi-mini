@@ -134,3 +134,50 @@ def test_export(tmp_path):
                         "--out", str(out), "--format", fmt], check=True, capture_output=True)
         row = json.loads(out.read_text().splitlines()[0])
         assert row["prompt"] and (row.get("completion") or row.get("target"))
+
+
+def test_relational_ops_known_results():
+    a = lambda n, g, **p: apply_step(G(g), n, p)
+    eq = lambda x, y: (x == G(y)).all()
+    assert eq(a("recolor_from_marker", "1130", erase=True), "3300")
+    assert eq(a("recolor_from_marker", "1130", erase=False), "3330")
+    ring = "22222 20002 20102 20002 22222"
+    assert eq(a("recolor_contained", ring, mode="inherit"), "22222 20002 20202 20002 22222")
+    assert eq(a("recolor_contained", ring, mode="invert"), "11111 10001 10101 10001 11111")
+    out = a("stamp_template", "0100000 1110000 0100000 0000000 0000000 0000030 0000000",
+            marker=3, recolor=False)
+    assert out[4, 5] == 1 and out[5, 4] == 1 and out[5, 5] == 1 and out[6, 5] == 1
+    assert eq(a("slide_toward", "10002", mover=1, target=2), "00012")
+    assert eq(a("slide_toward", "10003", mover=1, target=2), "10003")
+    assert eq(a("connect_to_target", "1002", mover=1, target=2), "1112")
+    assert eq(a("repair_tiling", "1212 1212 1252 1212", mask=5, crop=False), "1212 1212 1212 1212")
+    assert eq(a("repair_tiling", "1212 1212 1252 1212", mask=5, crop=True), "1")
+    assert eq(a("repair_symmetry", "1200", mask=0, mode="h", crop=False), "1221")
+    assert eq(a("extend_periodic", "121200000", axis=1), "121212121")
+    assert eq(a("fill_holes_by_area", "111 101 111", colors=[4, 5, 6]), "111 141 111")
+    assert eq(a("flood_from_seed", "11111 10001 10201 10001 11111", seed=2, color=4),
+              "11111 14441 14241 14441 11111")
+    assert eq(a("draw_rect_between", "1000 0000 0001", fill=False, color=-1), "1111 1001 1111")
+    assert eq(a("fill_largest_empty_rect", "0011 0011 1111", color=5), "5511 5511 1111")
+    assert eq(a("object_histogram", "10101 00000 20200", seg="c8"), "111 220")
+    assert eq(a("unify_multicolor", "112", mode="minor", seg="m8"), "222")
+    assert eq(a("unify_multicolor", "112", mode="major", seg="m8"), "111")
+    assert eq(a("mirror_over_line", "100 555 000", line=5), "100 555 100")
+    assert eq(a("fill_cells", "10201 00200", mode="nonempty", color=-1), "11211 11211")
+    assert eq(a("fill_cells", "10201 00200", mode="empty", color=4), "10201 00200")
+
+
+def test_relational_selectors():
+    g = G("1000 0002 0000")
+    rec = lambda by, **kw: apply_step(g, "recolor_objects",
+                                      {"sel": {"by": by, **kw}, "seg": "c8", "color": 7})
+    assert (rec("leftmost") == G("7000 0002 0000")).all()
+    assert (rec("rightmost") == G("1000 0007 0000")).all()
+    assert (rec("topmost") == G("7000 0002 0000")).all()
+    rt = lambda v: apply_step(G("1120 0000 0003"), "recolor_objects",
+                              {"sel": {"by": "touching", "value": v}, "seg": "c8", "color": 7})
+    assert (rt(2) == G("7720 0000 0003")).all()
+    assert (rt(3) == G("1120 0000 0003")).all()
+    d = G("1010 0000 0220")  # all single/line shapes: two 1-dots share a shape; the 22 pair is unique
+    r = apply_step(d, "recolor_objects", {"sel": {"by": "dup_shape"}, "seg": "c8", "color": 7})
+    assert (r == G("7070 0000 0220")).all()

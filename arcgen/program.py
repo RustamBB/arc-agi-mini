@@ -7,6 +7,7 @@ import numpy as np
 
 from .core import MAX_SIZE, OpError
 from .generators import GENERATORS
+from . import generators_rel  # noqa: F401  (registers relational generators)
 from .ops import OPS
 
 Grid = np.ndarray

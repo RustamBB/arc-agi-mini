@@ -96,8 +96,8 @@ def stamp_shape(g, src, shape, color):
     return out
 
 
-def _cells(g):
-    """Split a grid on full uniform separator lines into a row-major list of sub-grids."""
+def _boxes(g):
+    """(r0, r1, c0, c1) half-open boxes of the sub-grids of a separator-split grid, row-major."""
     h, w = g.shape
     sep = None
     for line in list(g) + list(g.T):
@@ -117,10 +117,14 @@ def _cells(g):
             prev = i
         return out
 
-    cells = [g[a:b, c:d] for a, b in spans(rs, h) for c, d in spans(cs, w)]
-    if len(cells) < 2:
+    boxes = [(a, b, c, d) for a, b in spans(rs, h) for c, d in spans(cs, w)]
+    if len(boxes) < 2:
         raise OpError("single cell")
-    return cells
+    return boxes
+
+
+def _cells(g):
+    return [g[a:b, c:d] for a, b, c, d in _boxes(g)]
 
 
 @op("select_cell", "structure", lambda rng, g: {"mode": str(rng.choice(["most", "least"]))},
