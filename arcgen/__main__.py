@@ -81,4 +81,5 @@ def main():
         print(json.dumps(st, indent=2))
 
 
-main()
+if __name__ == "__main__":  # required for multiprocessing on Windows / macOS (spawn)
+    main()

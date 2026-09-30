@@ -91,7 +91,8 @@ class TaskData:
                 if limit and i >= limit:
                     break
                 r = json.loads(line)
-                pairs = [(np.array(p["input"]), np.array(p["output"])) for p in r["train"] + r["test"]]
+                pairs = [(np.array(p["input"], dtype=np.int8), np.array(p["output"], dtype=np.int8))
+                         for p in r["train"] + r["test"]]  # int8: 200k tasks stay ~1.5 GB
                 self.tasks.append((pairs, r["program_text"]))
 
     def __len__(self):

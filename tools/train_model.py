@@ -20,6 +20,7 @@ def main():
     ap.add_argument("--amp", action="store_true", help="bf16 autocast (recommended on Ampere+ GPUs)")
     ap.add_argument("--maxlen", type=int, default=1024, help="max tokens per training example")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--accum", type=int, default=1, help="gradient accumulation micro-batches (effective batch = bs*accum)")
     a = ap.parse_args()
     dev = torch.device("cuda" if a.device == "auto" and torch.cuda.is_available() else
                        "cpu" if a.device == "auto" else a.device)
@@ -42,17 +43,22 @@ def main():
         lr = a.lr * min(1, step / warm) * (0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * step / a.steps)))
         for g in opt.param_groups:
             g["lr"] = lr
-        ids, rows, cols, segs, mask = [t.to(dev) for t in data.batch(a.bs)]
-        with torch.autocast(device_type=dev.type, dtype=torch.bfloat16, enabled=a.amp):
-            logits, _ = model(ids[:, :-1], rows[:, :-1], cols[:, :-1], segs[:, :-1])
-        loss = (F.cross_entropy(logits.float().reshape(-1, logits.shape[-1]), ids[:, 1:].reshape(-1),
-                                reduction="none") * mask[:, 1:].reshape(-1)).sum() / mask[:, 1:].sum()
-        opt.zero_grad(); loss.backward()
+        opt.zero_grad()
+        loss_val = 0.0
+        for _ in range(a.accum):
+            ids, rows, cols, segs, mask = [t.to(dev) for t in data.batch(a.bs)]
+            with torch.autocast(device_type=dev.type, dtype=torch.bfloat16, enabled=a.amp):
+                logits, _ = model(ids[:, :-1], rows[:, :-1], cols[:, :-1], segs[:, :-1])
+            loss = (F.cross_entropy(logits.float().reshape(-1, logits.shape[-1]), ids[:, 1:].reshape(-1),
+                                    reduction="none") * mask[:, 1:].reshape(-1)).sum() / mask[:, 1:].sum()
+            (loss / a.accum).backward()
+            loss_val += loss.item() / a.accum
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step()
-        run = loss.item() if step == 1 else .98 * run + .02 * loss.item()
+        run = loss_val if step == 1 else .98 * run + .02 * loss_val
         if step % 25 == 0:
-            print(f"step {step} loss {run:.3f} lr {lr:.2e} {time.time()-t0:.0f}s", flush=True)
+            mem = f" peakVRAM {torch.cuda.max_memory_allocated(dev)/2**30:.1f}GB" if dev.type == "cuda" else ""
+            print(f"step {step} loss {run:.3f} lr {lr:.2e} {time.time()-t0:.0f}s{mem}", flush=True)
         if step % a.eval_every == 0 or step == a.steps:
             save(model, a.out)
             if val:
