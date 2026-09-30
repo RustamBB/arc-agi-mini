@@ -1,0 +1,151 @@
+{"id": "007bbfb7", "program": [{"op": "fractal", "params": {}}], "program_text": "fractal()"}
+{"id": "00d62c1b", "program": [{"op": "fill_holes", "params": {"color": 4}}], "program_text": "fill_holes(color=4)"}
+{"id": "0520fde7", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "and", "color": 2}}], "program_text": "half_logic(axis=1,mode=and,color=2)"}
+{"id": "070dd51e", "program": [{"op": "connect_pairs", "params": {"src": -1, "line": -1, "axis": 1}}, {"op": "draw_rect_between", "params": {"fill": true, "color": -1}}], "program_text": "connect_pairs(src=-1,line=-1,axis=1) | draw_rect_between(fill=true,color=-1)"}
+{"id": "08ed6ac7", "program": [{"op": "recolor_split", "params": {"sel": {"by": "size_lt", "value": 5}, "seg": "m8", "yes": 4, "no": 1}}, {"op": "recolor_by_size_rank", "params": {"colors": [1, 2, 3], "seg": "m8"}}], "program_text": "recolor_split(sel={by=size_lt,value=5},seg=m8,yes=4,no=1) | recolor_by_size_rank(colors=[1,2,3],seg=m8)"}
+{"id": "0c9aba6e", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "nor", "color": 8}}], "program_text": "half_logic(axis=0,mode=nor,color=8)"}
+{"id": "0ca9ddb6", "program": [{"op": "stamp_shape", "params": {"src": 1, "shape": "row", "color": 7}}, {"op": "stamp_shape", "params": {"src": 2, "shape": "x", "color": 4}}, {"op": "stamp_shape", "params": {"src": 1, "shape": "col", "color": 7}}], "program_text": "stamp_shape(src=1,shape=row,color=7) | stamp_shape(src=2,shape=x,color=4) | stamp_shape(src=1,shape=col,color=7)"}
+{"id": "11852cab", "program": [{"op": "symmetrize_bbox", "params": {"mode": "rot"}}], "program_text": "symmetrize_bbox(mode=rot)"}
+{"id": "1190e5a7", "program": [{"op": "cells_to_pixels", "params": {}}], "program_text": "cells_to_pixels()"}
+{"id": "12eac192", "program": [{"op": "recolor_objects", "params": {"sel": {"by": "smallest"}, "seg": "c8", "color": 6}}, {"op": "recolor_objects", "params": {"sel": {"by": "size_lt", "value": 3}, "seg": "c4", "color": 3}}], "program_text": "recolor_objects(sel={by=smallest},seg=c8,color=6) | recolor_objects(sel={by=size_lt,value=3},seg=c4,color=3)"}
+{"id": "178fcbfb", "program": [{"op": "full_lines", "params": {"src": 3, "dir": "h"}}, {"op": "shoot_rays", "params": {"src": 1, "dir": "h"}}, {"op": "fill_lines", "params": {"src": 2, "axis": 1, "color": 2}}], "program_text": "full_lines(src=3,dir=h) | shoot_rays(src=1,dir=h) | fill_lines(src=2,axis=1,color=2)"}
+{"id": "195ba7dc", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "or", "color": 1}}], "program_text": "half_logic(axis=1,mode=or,color=1)"}
+{"id": "1b2d62fb", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "nor", "color": 8}}], "program_text": "half_logic(axis=1,mode=nor,color=8)"}
+{"id": "1c786137", "program": [{"op": "crop_to_object", "params": {"sel": {"by": "has_hole"}, "seg": "c4"}}, {"op": "remove_border", "params": {}}], "program_text": "crop_to_object(sel={by=has_hole},seg=c4) | remove_border()"}
+{"id": "1cf80156", "program": [{"op": "crop_to_content", "params": {}}], "program_text": "crop_to_content()"}
+{"id": "1d0a4b61", "program": [{"op": "repair_tiling", "params": {"mask": 0, "crop": false}}], "program_text": "repair_tiling(mask=0,crop=false)"}
+{"id": "1e0a9b12", "program": [{"op": "gravity_cells", "params": {"dir": "down"}}], "program_text": "gravity_cells(dir=down)"}
+{"id": "1f85a75f", "program": [{"op": "crop_to_object", "params": {"sel": {"by": "largest"}, "seg": "m4"}}], "program_text": "crop_to_object(sel={by=largest},seg=m4)"}
+{"id": "1f876c06", "program": [{"op": "connect_diag", "params": {"src": -1, "line": -1}}], "program_text": "connect_diag(src=-1,line=-1)"}
+{"id": "21f83797", "program": [{"op": "shoot_rays", "params": {"src": 2, "dir": "cross"}}, {"op": "fill_holes", "params": {"color": 1}}], "program_text": "shoot_rays(src=2,dir=cross) | fill_holes(color=1)"}
+{"id": "22168020", "program": [{"op": "connect_pairs", "params": {"src": -1, "line": -1}}], "program_text": "connect_pairs(src=-1,line=-1)"}
+{"id": "22eb0ac0", "program": [{"op": "connect_pairs", "params": {"src": -1, "line": -1}}], "program_text": "connect_pairs(src=-1,line=-1)"}
+{"id": "23b5c85d", "program": [{"op": "crop_to_object", "params": {"sel": {"by": "smallest"}, "seg": "c8"}}], "program_text": "crop_to_object(sel={by=smallest},seg=c8)"}
+{"id": "253bf280", "program": [{"op": "connect_pairs", "params": {"src": -1, "line": 3}}], "program_text": "connect_pairs(src=-1,line=3)"}
+{"id": "25ff71a9", "program": [{"op": "translate", "params": {"dy": -2, "dx": -3, "wrap": true}}], "program_text": "translate(dy=-2,dx=-3,wrap=true)"}
+{"id": "2753e76c", "program": [{"op": "object_histogram", "params": {"seg": "c4"}}, {"op": "flip", "params": {"axis": 1}}], "program_text": "object_histogram(seg=c4) | flip(axis=1)"}
+{"id": "28bf18c6", "program": [{"op": "crop_to_content", "params": {}}, {"op": "tile", "params": {"ny": 1, "nx": 2}}], "program_text": "crop_to_content() | tile(ny=1,nx=2)"}
+{"id": "2a5f8217", "program": [{"op": "recolor_by_shape_match", "params": {"src": 1}}], "program_text": "recolor_by_shape_match(src=1)"}
+{"id": "31d5ba1a", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "xor", "color": 6}}], "program_text": "half_logic(axis=0,mode=xor,color=6)"}
+{"id": "3428a4f5", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "xor", "color": 3}}], "program_text": "half_logic(axis=0,mode=xor,color=3)"}
+{"id": "34b99a2b", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "xor", "color": 2}}], "program_text": "half_logic(axis=1,mode=xor,color=2)"}
+{"id": "3618c87e", "program": [{"op": "step_toward", "params": {"mover": 1, "target": 5, "steps": 2}}], "program_text": "step_toward(mover=1,target=5,steps=2)"}
+{"id": "3aa6fb7a", "program": [{"op": "bbox_fill", "params": {"sel": {"by": "all"}, "seg": "m4", "color": 1}}], "program_text": "bbox_fill(sel={by=all},seg=m4,color=1)"}
+{"id": "3af2c5a8", "program": [{"op": "mirror_concat", "params": {"mode": "both"}}], "program_text": "mirror_concat(mode=both)"}
+{"id": "3c9b0459", "program": [{"op": "rot90", "params": {"k": 2}}], "program_text": "rot90(k=2)"}
+{"id": "4258a5f9", "program": [{"op": "outline_objects", "params": {"sel": {"by": "all"}, "seg": "m4", "color": 1}}], "program_text": "outline_objects(sel={by=all},seg=m4,color=1)"}
+{"id": "42a50994", "program": [{"op": "delete_objects", "params": {"sel": {"by": "smallest"}, "seg": "c8"}}], "program_text": "delete_objects(sel={by=smallest},seg=c8)"}
+{"id": "4347f46a", "program": [{"op": "hollow_objects", "params": {"sel": {"by": "all"}, "seg": "c8"}}], "program_text": "hollow_objects(sel={by=all},seg=c8)"}
+{"id": "445eab21", "program": [{"op": "dominant_color_cell", "params": {}}, {"op": "scale_up", "params": {"k": 2}}], "program_text": "dominant_color_cell() | scale_up(k=2)"}
+{"id": "484b58aa", "program": [{"op": "repair_tiling", "params": {"mask": 0, "crop": false}}], "program_text": "repair_tiling(mask=0,crop=false)"}
+{"id": "496994bd", "program": [{"op": "symmetrize", "params": {"mode": "v"}}], "program_text": "symmetrize(mode=v)"}
+{"id": "49d1d64f", "program": [{"op": "pad_replicate", "params": {"n": 1, "corners": true}}], "program_text": "pad_replicate(n=1,corners=true)"}
+{"id": "4c4377d9", "program": [{"op": "mirror_concat", "params": {"mode": "v"}}, {"op": "translate", "params": {"dy": -3, "dx": 0, "wrap": true}}], "program_text": "mirror_concat(mode=v) | translate(dy=-3,dx=0,wrap=true)"}
+{"id": "506d28a5", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "or", "color": 3}}], "program_text": "half_logic(axis=0,mode=or,color=3)"}
+{"id": "50cb2852", "program": [{"op": "paint_interior", "params": {"sel": {"by": "all"}, "seg": "m4", "color": 8}}], "program_text": "paint_interior(sel={by=all},seg=m4,color=8)"}
+{"id": "516b51b7", "program": [{"op": "paint_interior", "params": {"sel": {"by": "all"}, "seg": "c4", "color": 2}}, {"op": "paint_interior", "params": {"sel": {"by": "rect"}, "seg": "c8", "color": 3}}, {"op": "paint_interior", "params": {"sel": {"by": "not_color", "value": 1}, "seg": "c8", "color": 2}}], "program_text": "paint_interior(sel={by=all},seg=c4,color=2) | paint_interior(sel={by=rect},seg=c8,color=3) | paint_interior(sel={by=not_color,value=1},seg=c8,color=2)"}
+{"id": "54d82841", "program": [{"op": "bbox_fill", "params": {"sel": {"by": "largest"}, "seg": "c4", "color": 4}}, {"op": "slide_objects", "params": {"sel": {"by": "smallest"}, "seg": "c8", "dir": "down"}}], "program_text": "bbox_fill(sel={by=largest},seg=c4,color=4) | slide_objects(sel={by=smallest},seg=c8,dir=down)"}
+{"id": "551d5bf1", "program": [{"op": "bbox_fill", "params": {"sel": {"by": "inner"}, "seg": "m8", "color": 8}}, {"op": "shoot_rays", "params": {"src": 8, "dir": "cross"}}], "program_text": "bbox_fill(sel={by=inner},seg=m8,color=8) | shoot_rays(src=8,dir=cross)"}
+{"id": "5614dbcf", "program": [{"op": "pool", "params": {"k": 3, "mode": "major"}}], "program_text": "pool(k=3,mode=major)"}
+{"id": "56ff96f3", "program": [{"op": "draw_rect_between", "params": {"fill": true, "color": -1}}], "program_text": "draw_rect_between(fill=true,color=-1)"}
+{"id": "5751f35e", "program": [{"op": "symmetrize", "params": {"mode": "d4"}}], "program_text": "symmetrize(mode=d4)"}
+{"id": "5b6cbef5", "program": [{"op": "fractal", "params": {}}], "program_text": "fractal()"}
+{"id": "5bd6f4ac", "program": [{"op": "crop_fixed", "params": {"corner": "tr", "h": 3, "w": 3}}], "program_text": "crop_fixed(corner=tr,h=3,w=3)"}
+{"id": "5d2a5c43", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "or", "color": 8}}], "program_text": "half_logic(axis=1,mode=or,color=8)"}
+{"id": "5ffb2104", "program": [{"op": "slide_objects", "params": {"sel": {"by": "all"}, "seg": "c8", "dir": "right"}}, {"op": "slide_objects", "params": {"sel": {"by": "dup_shape"}, "seg": "c4", "dir": "right"}}], "program_text": "slide_objects(sel={by=all},seg=c8,dir=right) | slide_objects(sel={by=dup_shape},seg=c4,dir=right)"}
+{"id": "60b61512", "program": [{"op": "bbox_fill", "params": {"sel": {"by": "all"}, "seg": "m8", "color": 7}}], "program_text": "bbox_fill(sel={by=all},seg=m8,color=7)"}
+{"id": "60c09cac", "program": [{"op": "scale_up", "params": {"k": 2}}], "program_text": "scale_up(k=2)"}
+{"id": "6150a2bd", "program": [{"op": "rot90", "params": {"k": 2}}], "program_text": "rot90(k=2)"}
+{"id": "623ea044", "program": [{"op": "shoot_rays", "params": {"src": -1, "dir": "diag"}}], "program_text": "shoot_rays(src=-1,dir=diag)"}
+{"id": "62c24649", "program": [{"op": "mirror_concat", "params": {"mode": "both"}}], "program_text": "mirror_concat(mode=both)"}
+{"id": "6430c8c4", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "nor", "color": 3}}], "program_text": "half_logic(axis=0,mode=nor,color=3)"}
+{"id": "66e6c45b", "program": [{"op": "translate", "params": {"dy": 2, "dx": 2, "wrap": true}}, {"op": "rot90", "params": {"k": 2}}], "program_text": "translate(dy=2,dx=2,wrap=true) | rot90(k=2)"}
+{"id": "66f2d22f", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "nor", "color": 5}}], "program_text": "half_logic(axis=1,mode=nor,color=5)"}
+{"id": "67a3c6ac", "program": [{"op": "flip", "params": {"axis": 1}}], "program_text": "flip(axis=1)"}
+{"id": "67e8384a", "program": [{"op": "mirror_concat", "params": {"mode": "both"}}], "program_text": "mirror_concat(mode=both)"}
+{"id": "68b16354", "program": [{"op": "flip", "params": {"axis": 0}}], "program_text": "flip(axis=0)"}
+{"id": "68b67ca3", "program": [{"op": "pool", "params": {"k": 2, "mode": "any"}}], "program_text": "pool(k=2,mode=any)"}
+{"id": "694f12f3", "program": [{"op": "paint_interior", "params": {"sel": {"by": "rect"}, "seg": "m8", "color": 2}}, {"op": "recolor_objects", "params": {"sel": {"by": "smallest"}, "seg": "c4", "color": 1}}], "program_text": "paint_interior(sel={by=rect},seg=m8,color=2) | recolor_objects(sel={by=smallest},seg=c4,color=1)"}
+{"id": "6d0aefbc", "program": [{"op": "mirror_concat", "params": {"mode": "h"}}], "program_text": "mirror_concat(mode=h)"}
+{"id": "6d75e8bb", "program": [{"op": "bbox_fill", "params": {"sel": {"by": "all"}, "seg": "c4", "color": 2}}], "program_text": "bbox_fill(sel={by=all},seg=c4,color=2)"}
+{"id": "6e82a1ae", "program": [{"op": "recolor_by_size_rank", "params": {"colors": [1, 2, 3], "seg": "m8"}}], "program_text": "recolor_by_size_rank(colors=[1,2,3],seg=m8)"}
+{"id": "6f8cd79b", "program": [{"op": "draw_border", "params": {"color": 8}}], "program_text": "draw_border(color=8)"}
+{"id": "6fa7a44f", "program": [{"op": "mirror_concat", "params": {"mode": "v"}}], "program_text": "mirror_concat(mode=v)"}
+{"id": "7039b2d7", "program": [{"op": "cells_to_pixels", "params": {}}], "program_text": "cells_to_pixels()"}
+{"id": "7468f01a", "program": [{"op": "crop_to_content", "params": {}}, {"op": "flip", "params": {"axis": 1}}], "program_text": "crop_to_content() | flip(axis=1)"}
+{"id": "746b3537", "program": [{"op": "dedupe_adjacent", "params": {"axis": 2}}], "program_text": "dedupe_adjacent(axis=2)"}
+{"id": "74dd1130", "program": [{"op": "transpose", "params": {}}], "program_text": "transpose()"}
+{"id": "7b6016b9", "program": [{"op": "recolor", "params": {"src": 0, "dst": 3}}, {"op": "recolor_objects", "params": {"sel": {"by": "inner"}, "seg": "c8", "color": 2}}], "program_text": "recolor(src=0,dst=3) | recolor_objects(sel={by=inner},seg=c8,color=2)"}
+{"id": "7f4411dc", "program": [{"op": "majority_filter", "params": {"conn": 4}}], "program_text": "majority_filter(conn=4)"}
+{"id": "7fe24cdd", "program": [{"op": "rot_quad", "params": {"cw": true}}], "program_text": "rot_quad(cw=true)"}
+{"id": "810b9b61", "program": [{"op": "recolor_by_holes", "params": {"colors": [1, 3, 0], "seg": "c8"}}], "program_text": "recolor_by_holes(colors=[1,3,0],seg=c8)"}
+{"id": "88a10436", "program": [{"op": "stamp_template", "params": {"marker": 5, "recolor": false}}], "program_text": "stamp_template(marker=5,recolor=false)"}
+{"id": "8be77c9e", "program": [{"op": "mirror_concat", "params": {"mode": "v"}}], "program_text": "mirror_concat(mode=v)"}
+{"id": "8ee62060", "program": [{"op": "rot90", "params": {"k": 3}}, {"op": "rotate_objects", "params": {"sel": {"by": "largest"}, "seg": "m4", "k": 1}}], "program_text": "rot90(k=3) | rotate_objects(sel={by=largest},seg=m4,k=1)"}
+{"id": "9172f3a0", "program": [{"op": "scale_up", "params": {"k": 3}}], "program_text": "scale_up(k=3)"}
+{"id": "94f9d214", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "nor", "color": 2}}], "program_text": "half_logic(axis=0,mode=nor,color=2)"}
+{"id": "99b1bc43", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "xor", "color": 3}}], "program_text": "half_logic(axis=0,mode=xor,color=3)"}
+{"id": "9af7a82c", "program": [{"op": "color_histogram", "params": {"vertical": true}}, {"op": "flip", "params": {"axis": 0}}], "program_text": "color_histogram(vertical=true) | flip(axis=0)"}
+{"id": "9c56f360", "program": [{"op": "slide_cells", "params": {"src": 3, "dir": "left"}}], "program_text": "slide_cells(src=3,dir=left)"}
+{"id": "9dfd6313", "program": [{"op": "transpose", "params": {}}], "program_text": "transpose()"}
+{"id": "9edfc990", "program": [{"op": "flood_from_seed", "params": {"seed": 1, "color": -1}}], "program_text": "flood_from_seed(seed=1,color=-1)"}
+{"id": "a416b8f3", "program": [{"op": "tile", "params": {"ny": 1, "nx": 2}}], "program_text": "tile(ny=1,nx=2)"}
+{"id": "a5313dff", "program": [{"op": "fill_holes", "params": {"color": 1}}], "program_text": "fill_holes(color=1)"}
+{"id": "a68b268e", "program": [{"op": "overlay_cells", "params": {"order": "fwd"}}], "program_text": "overlay_cells(order=fwd)"}
+{"id": "a699fb00", "program": [{"op": "connect_pairs", "params": {"src": 1, "line": 2, "axis": 0}}], "program_text": "connect_pairs(src=1,line=2,axis=0)"}
+{"id": "a8610ef7", "program": [{"op": "recolor_mirrored", "params": {"axis": 0, "color": 2}}, {"op": "recolor", "params": {"src": 8, "dst": 5}}], "program_text": "recolor_mirrored(axis=0,color=2) | recolor(src=8,dst=5)"}
+{"id": "a87f7484", "program": [{"op": "crop_to_object", "params": {"sel": {"by": "largest"}, "seg": "c8"}}], "program_text": "crop_to_object(sel={by=largest},seg=c8)"}
+{"id": "ae3edfdc", "program": [{"op": "slide_toward", "params": {"mover": 7, "target": 1}}, {"op": "slide_toward", "params": {"mover": 3, "target": 2}}], "program_text": "slide_toward(mover=7,target=1) | slide_toward(mover=3,target=2)"}
+{"id": "aedd82e4", "program": [{"op": "recolor_objects", "params": {"sel": {"by": "size_lt", "value": 3}, "seg": "c4", "color": 1}}], "program_text": "recolor_objects(sel={by=size_lt,value=3},seg=c4,color=1)"}
+{"id": "b1948b0a", "program": [{"op": "recolor", "params": {"src": 6, "dst": 2}}], "program_text": "recolor(src=6,dst=2)"}
+{"id": "b230c067", "program": [{"op": "recolor_by_size_rank", "params": {"colors": [1, 2], "seg": "c8"}}], "program_text": "recolor_by_size_rank(colors=[1,2],seg=c8)"}
+{"id": "b27ca6d3", "program": [{"op": "frame_objects", "params": {"sel": {"by": "size_gt", "value": 1}, "seg": "m8", "color": 3}}], "program_text": "frame_objects(sel={by=size_gt,value=1},seg=m8,color=3)"}
+{"id": "b60334d2", "program": [{"op": "stamp_shape", "params": {"src": 5, "shape": "plus", "color": 1}}, {"op": "outline_objects", "params": {"sel": {"by": "smallest"}, "seg": "c8", "color": -1}}, {"op": "hollow_objects", "params": {"sel": {"by": "all"}, "seg": "m4"}}], "program_text": "stamp_shape(src=5,shape=plus,color=1) | outline_objects(sel={by=smallest},seg=c8,color=-1) | hollow_objects(sel={by=all},seg=m4)"}
+{"id": "b8825c91", "program": [{"op": "repair_symmetry", "params": {"mask": 4, "mode": "h", "crop": false}}], "program_text": "repair_symmetry(mask=4,mode=h,crop=false)"}
+{"id": "bb43febb", "program": [{"op": "paint_interior", "params": {"sel": {"by": "all"}, "seg": "c4", "color": 2}}], "program_text": "paint_interior(sel={by=all},seg=c4,color=2)"}
+{"id": "be03b35f", "program": [{"op": "repair_symmetry", "params": {"mask": 2, "mode": "rot", "crop": true}}, {"op": "rot90", "params": {"k": 2}}], "program_text": "repair_symmetry(mask=2,mode=rot,crop=true) | rot90(k=2)"}
+{"id": "be94b721", "program": [{"op": "crop_to_object", "params": {"sel": {"by": "largest"}, "seg": "c8"}}], "program_text": "crop_to_object(sel={by=largest},seg=c8)"}
+{"id": "bf89d739", "program": [{"op": "connect_pairs", "params": {"src": 2, "line": 3}}, {"op": "connect_to_target", "params": {"mover": 3, "target": 2}}], "program_text": "connect_pairs(src=2,line=3) | connect_to_target(mover=3,target=2)"}
+{"id": "c0f76784", "program": [{"op": "fill_holes_by_area", "params": {"colors": [6, 7, 8]}}], "program_text": "fill_holes_by_area(colors=[6,7,8])"}
+{"id": "c48954c1", "program": [{"op": "tile_flip", "params": {"ny": 3, "nx": 3}}, {"op": "rot90", "params": {"k": 2}}], "program_text": "tile_flip(ny=3,nx=3) | rot90(k=2)"}
+{"id": "c59eb873", "program": [{"op": "scale_up", "params": {"k": 2}}], "program_text": "scale_up(k=2)"}
+{"id": "c8f0f002", "program": [{"op": "recolor", "params": {"src": 7, "dst": 5}}], "program_text": "recolor(src=7,dst=5)"}
+{"id": "c909285e", "program": [{"op": "crop_to_object", "params": {"sel": {"by": "rare_color"}, "seg": "c4"}}], "program_text": "crop_to_object(sel={by=rare_color},seg=c4)"}
+{"id": "c9e6f938", "program": [{"op": "mirror_concat", "params": {"mode": "h"}}], "program_text": "mirror_concat(mode=h)"}
+{"id": "cd3c21df", "program": [{"op": "crop_to_object", "params": {"sel": {"by": "rare_color"}, "seg": "c8"}}], "program_text": "crop_to_object(sel={by=rare_color},seg=c8)"}
+{"id": "ce039d91", "program": [{"op": "recolor_mirrored", "params": {"axis": 1, "color": 1}}], "program_text": "recolor_mirrored(axis=1,color=1)"}
+{"id": "ce22a75a", "program": [{"op": "outline_objects", "params": {"sel": {"by": "all"}, "seg": "c8", "color": 1}}, {"op": "recolor", "params": {"src": 5, "dst": 1}}], "program_text": "outline_objects(sel={by=all},seg=c8,color=1) | recolor(src=5,dst=1)"}
+{"id": "ce4f8723", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "or", "color": 3}}], "program_text": "half_logic(axis=0,mode=or,color=3)"}
+{"id": "ce8d95cc", "program": [{"op": "dedupe_adjacent", "params": {"axis": 2}}], "program_text": "dedupe_adjacent(axis=2)"}
+{"id": "d037b0a7", "program": [{"op": "shoot_rays", "params": {"src": -1, "dir": "down"}}], "program_text": "shoot_rays(src=-1,dir=down)"}
+{"id": "d10ecb37", "program": [{"op": "crop_fixed", "params": {"corner": "tl", "h": 2, "w": 2}}], "program_text": "crop_fixed(corner=tl,h=2,w=2)"}
+{"id": "d19f7514", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "or", "color": 4}}], "program_text": "half_logic(axis=0,mode=or,color=4)"}
+{"id": "d23f8c26", "program": [{"op": "keep_center_line", "params": {"axis": 1}}], "program_text": "keep_center_line(axis=1)"}
+{"id": "d282b262", "program": [{"op": "slide_objects", "params": {"sel": {"by": "not_color", "value": 4}, "seg": "m8", "dir": "right"}}, {"op": "slide_objects", "params": {"sel": {"by": "largest"}, "seg": "m4", "dir": "right"}}], "program_text": "slide_objects(sel={by=not_color,value=4},seg=m8,dir=right) | slide_objects(sel={by=largest},seg=m4,dir=right)"}
+{"id": "d4f3cd78", "program": [{"op": "bbox_fill", "params": {"sel": {"by": "all"}, "seg": "c4", "color": 8}}, {"op": "shoot_rays", "params": {"src": 8, "dir": "cross"}}], "program_text": "bbox_fill(sel={by=all},seg=c4,color=8) | shoot_rays(src=8,dir=cross)"}
+{"id": "d511f180", "program": [{"op": "swap_colors", "params": {"a": 8, "b": 5}}], "program_text": "swap_colors(a=8,b=5)"}
+{"id": "dae9d2b5", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "or", "color": 6}}], "program_text": "half_logic(axis=1,mode=or,color=6)"}
+{"id": "dbc1a6ce", "program": [{"op": "connect_pairs", "params": {"src": 1, "line": 8}}], "program_text": "connect_pairs(src=1,line=8)"}
+{"id": "dc1df850", "program": [{"op": "outline_objects", "params": {"sel": {"by": "common_color"}, "seg": "c8", "color": 1}}], "program_text": "outline_objects(sel={by=common_color},seg=c8,color=1)"}
+{"id": "dc433765", "program": [{"op": "step_toward", "params": {"mover": 3, "target": 4, "steps": 1}}], "program_text": "step_toward(mover=3,target=4,steps=1)"}
+{"id": "ded97339", "program": [{"op": "connect_pairs", "params": {"src": 8, "line": -1}}], "program_text": "connect_pairs(src=8,line=-1)"}
+{"id": "e0fb7511", "program": [{"op": "stamp_shape", "params": {"src": 0, "shape": "plus", "color": 8}}], "program_text": "stamp_shape(src=0,shape=plus,color=8)"}
+{"id": "e133d23d", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "or", "color": 2}}], "program_text": "half_logic(axis=1,mode=or,color=2)"}
+{"id": "e1baa8a4", "program": [{"op": "dedupe_adjacent", "params": {"axis": 2}}], "program_text": "dedupe_adjacent(axis=2)"}
+{"id": "e21a174a", "program": [{"op": "rot90", "params": {"k": 2}}, {"op": "flip_objects", "params": {"sel": {"by": "inner"}, "seg": "c8", "axis": 0}}], "program_text": "rot90(k=2) | flip_objects(sel={by=inner},seg=c8,axis=0)"}
+{"id": "e345f17b", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "nor", "color": 4}}], "program_text": "half_logic(axis=1,mode=nor,color=4)"}
+{"id": "e633a9e5", "program": [{"op": "pad_replicate", "params": {"n": 1, "corners": false}}], "program_text": "pad_replicate(n=1,corners=false)"}
+{"id": "e7639916", "program": [{"op": "bbox_frame_all", "params": {"color": 1, "pad": 0}}], "program_text": "bbox_frame_all(color=1,pad=0)"}
+{"id": "e8593010", "program": [{"op": "stamp_shape", "params": {"src": 0, "shape": "plus", "color": 2}}, {"op": "recolor_objects", "params": {"sel": {"by": "size_eq", "value": 3}, "seg": "c4", "color": 1}}, {"op": "recolor", "params": {"src": 0, "dst": 3}}], "program_text": "stamp_shape(src=0,shape=plus,color=2) | recolor_objects(sel={by=size_eq,value=3},seg=c4,color=1) | recolor(src=0,dst=3)"}
+{"id": "e98196ab", "program": [{"op": "overlay_cells", "params": {"order": "fwd"}}], "program_text": "overlay_cells(order=fwd)"}
+{"id": "e9afcf9a", "program": [{"op": "shear", "params": {"step": -1, "axis": 0}}], "program_text": "shear(step=-1,axis=0)"}
+{"id": "ea32f347", "program": [{"op": "recolor_by_size_rank", "params": {"colors": [1, 4, 2], "seg": "c4"}}], "program_text": "recolor_by_size_rank(colors=[1,4,2],seg=c4)"}
+{"id": "eb5a1d5d", "program": [{"op": "dedupe_adjacent", "params": {"axis": 2}}], "program_text": "dedupe_adjacent(axis=2)"}
+{"id": "ed36ccf7", "program": [{"op": "rot90", "params": {"k": 1}}], "program_text": "rot90(k=1)"}
+{"id": "f0df5ff0", "program": [{"op": "outline_objects", "params": {"sel": {"by": "color", "value": 1}, "seg": "c4", "color": -1}}], "program_text": "outline_objects(sel={by=color,value=1},seg=c4,color=-1)"}
+{"id": "f25ffba3", "program": [{"op": "symmetrize", "params": {"mode": "v"}}], "program_text": "symmetrize(mode=v)"}
+{"id": "f2829549", "program": [{"op": "half_logic", "params": {"axis": 1, "mode": "nor", "color": 3}}], "program_text": "half_logic(axis=1,mode=nor,color=3)"}
+{"id": "f823c43c", "program": [{"op": "repair_tiling", "params": {"mask": 6, "crop": false}}], "program_text": "repair_tiling(mask=6,crop=false)"}
+{"id": "f8ff0b80", "program": [{"op": "colors_by_frequency", "params": {}}], "program_text": "colors_by_frequency()"}
+{"id": "fafffa47", "program": [{"op": "half_logic", "params": {"axis": 0, "mode": "nor", "color": 2}}], "program_text": "half_logic(axis=0,mode=nor,color=2)"}
+{"id": "ff805c23", "program": [{"op": "repair_symmetry", "params": {"mask": 1, "mode": "rot", "crop": true}}], "program_text": "repair_symmetry(mask=1,mode=rot,crop=true)"}
