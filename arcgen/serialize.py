@@ -98,7 +98,7 @@ def check_program(text: str, pairs) -> bool:
     try:
         prog = parse_program(text)
         return all(same(run(prog, np.asarray(a))[-1], np.asarray(b)) for a, b in pairs)
-    except (ValueError, TypeError, KeyError, OpError, IndexError):
+    except Exception:  # model output is arbitrary: any failure just means "not a valid program"
         return False
 
 

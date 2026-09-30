@@ -106,3 +106,42 @@ same format as the synthetic dataset. The search is stochastic and time-budgeted
 
 Workflow used to grow the bank: run the search → look at the unsolved tasks with the smallest residual error
 (`tools/peek.py`) → add the missing concept as an op + generator + test → re-measure.
+
+## Synthetic data → model → real tasks (end-to-end)
+
+```
+pip install numpy torch
+python -m arcgen generate --n 40000 --out data/train --seed 100 --workers 4 --no-arc-files   # ~5 min
+python -m arcgen generate --n 500   --out data/val   --seed 200 --workers 4 --no-arc-files
+python tools/train_model.py --data data/train/dataset.jsonl --val data/val/dataset.jsonl --out model.pt --steps 5000
+python tools/eval_model.py  --model model.pt --synthetic data/val/dataset.jsonl --n 200      # held-out synthetic
+python tools/eval_model.py  --model model.pt --real challenges.json --out real.json          # real ARC tasks
+```
+
+`arcgen/model.py`: a 5M-parameter GPT (6 layers, d=256). Each grid cell is a token that also carries
+row / column / which-grid embeddings; the prompt is the demonstration pairs plus a query input and the target is
+the program text (loss on the program only). Every epoch re-samples which pairs are demos and which is the query.
+Sampling uses a KV cache and only allows program tokens; every sampled program is parsed and **executed on the
+demonstrations** — only programs that reproduce all of them count.
+
+### Results of the first model (5M params, 40k synthetic tasks, 5000 steps ≈ 2 h on 4 CPU cores)
+
+| test | result |
+|---|---|
+| validation token accuracy (teacher forced) | 0.80 |
+| held-out synthetic tasks, 32 samples + greedy, program reproduces all demos | 9.5% (1-op tasks 21%, 2-op 6%, 3-op 8%, 4-op 0%) |
+| … and also reproduces the held-out test pair | 7.8% |
+| syntactically valid sampled programs | 95% |
+| **real ARC-AGI-2 training tasks**, train-verified | **23 / 1000** (2.3%); 190 tasks skipped because the prompt exceeds 924 tokens |
+| of those, also found by beam search / new | 19 / 4 |
+
+The model clearly learns the format and the simple, visually obvious ops (fractal, mirror/tile, half-logic, rot_quad,
+scale, periods) but is far from solving ARC: greedy decoding is almost never right (0.3%), sampling + execution
+check is what produces the hits. Real-task numbers are *train-verified only* (test outputs are not available),
+so a few programs may be spurious (e.g. no-op steps such as `swap_colors(a=3,b=3)`).
+`examples/model_real_solutions.jsonl` lists the programs; `models/gpt5m_synthetic.pt` is the checkpoint
+(`arcgen.model.load`).
+
+Obvious next levers (not done): more/larger data and longer training (loss was still falling), a bigger model / GPU,
+dropping no-op steps from the sampler, sampling more candidates (best-of-256), and combining the model's
+proposals with the beam search (use sampled programs as a prior / starting points for the search).

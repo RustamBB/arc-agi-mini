@@ -269,3 +269,11 @@ def test_new_selectors():
     ring = G("111 101 111 000 200")
     assert (apply_step(ring, "recolor_objects", {"sel": {"by": "holes_eq", "value": 1}, "seg": "c8",
                                                  "color": 7}) == G("777 707 777 000 200")).all()
+
+
+def test_check_program_survives_garbage_params():
+    from arcgen.serialize import check_program
+    pair = [(G("10"), G("01"))]
+    for bad in ("recolor_objects(sel=3,seg=5,color=1)", "flip(axis=[7])", "tile(ny=-3,nx=x)",
+                "recolor_by_size_rank(colors=5,seg=c8)", "pad(n=4,color=true)"):
+        assert check_program(bad, pair) is False

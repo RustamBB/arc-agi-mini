@@ -48,6 +48,8 @@ def gen_tiled(rng, pal, h, w, hint):
 
 def gen_symmask(rng, pal, h, w, hint):
     mode, mask = hint.get("mode", "h"), int(hint.get("mask", 0))
+    if mode not in ("h", "v", "both", "rot", "d4"):
+        mode = "h"
     if mode == "rot":
         h = w = min(h, w)
     cols = _without(pal, mask)

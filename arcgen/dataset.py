@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import multiprocessing as mp
 from collections import Counter
 from pathlib import Path
 
@@ -75,16 +76,42 @@ def resolve_ops(include=None, exclude=None, categories=None) -> list[str]:
     return sorted(pool)
 
 
+def _work(args):
+    seed, i, pool, lo, hi = args
+    try:
+        return make_task(seed, i, pool, lo, hi)
+    except RuntimeError:
+        return None
+
+
+def _tasks(seed, op_pool, min_len, max_len, workers):
+    """Endless deterministic stream of tasks (index order), optionally built by a process pool."""
+    if workers <= 1:
+        i = 0
+        while True:
+            yield make_task(seed, i, op_pool, min_len, max_len)
+            i += 1
+    with mp.Pool(workers) as pool:
+        start, batch = 0, workers * 16
+        while True:  # bounded batches keep memory flat and results in index order
+            jobs = [(seed, i, op_pool, min_len, max_len) for i in range(start, start + batch)]
+            start += batch
+            for t in pool.map(_work, jobs, chunksize=4):
+                if t is not None:
+                    yield t
+
+
 def generate(n: int, out: str, seed: int = 0, min_len=1, max_len=4, include=None, exclude=None,
-             categories=None, trace=False, arc_files=True, log=print) -> dict:
+             categories=None, trace=False, arc_files=True, log=print, workers=1) -> dict:
     op_pool = resolve_ops(include, exclude, categories)
     outdir = Path(out)
     (outdir / "tasks").mkdir(parents=True, exist_ok=True)
     seen, ops_used, lens = set(), Counter(), Counter()
     written, i = 0, 0
     with open(outdir / "dataset.jsonl", "w") as f:
-        while written < n:
-            task = make_task(seed, i, op_pool, min_len, max_len)
+        for task in _tasks(seed, op_pool, min_len, max_len, workers):
+            if written >= n:
+                break
             i += 1
             tid = task_id(task)
             if tid in seen:

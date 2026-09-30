@@ -23,6 +23,7 @@ def main():
     g.add_argument("--exclude", help="comma separated op names to skip")
     g.add_argument("--categories", help="geometry,color,object,line,structure")
     g.add_argument("--trace", action="store_true", help="store intermediate grids per pair")
+    g.add_argument("--workers", type=int, default=1, help="parallel processes")
     g.add_argument("--no-arc-files", action="store_true", help="only write dataset.jsonl")
 
     s = sub.add_parser("show", help="pretty-print a few tasks")
@@ -76,7 +77,7 @@ def main():
         print(f"wrote {n} examples to {a.out} (vocab size {len(tok)})")
     else:
         st = generate(a.n, a.out, a.seed, a.min_len, a.max_len, _list(a.include), _list(a.exclude),
-                      _list(a.categories), a.trace, not a.no_arc_files)
+                      _list(a.categories), a.trace, not a.no_arc_files, workers=a.workers)
         print(json.dumps(st, indent=2))
 
 

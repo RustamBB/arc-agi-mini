@@ -1,0 +1,23 @@
+{"id": "007bbfb7", "programs": ["fractal()"]}
+{"id": "05f2a901", "programs": ["slide_toward(mover=2,target=8)"]}
+{"id": "1b2d62fb", "programs": ["half_logic(axis=1,mode=nor,color=8)"]}
+{"id": "1cf80156", "programs": ["keep_objects(sel={by=bottommost},seg=m8) | crop_to_object(sel={by=all},seg=m4)", "crop_object_only(sel={by=rightmost},seg=m8)", "crop_to_object(sel={by=largest},seg=m8) | recolor(src=9,dst=1)"]}
+{"id": "3af2c5a8", "programs": ["mirror_concat(mode=both)", "tile_flip(ny=1,nx=2) | mirror_concat(mode=v)"]}
+{"id": "46442a0e", "programs": ["rot_quad(cw=true) | fill_lines(src=6,axis=1,color=6)"]}
+{"id": "5b6cbef5", "programs": ["fractal() | swap_colors(a=3,b=3)", "fractal()", "fractal() | swap_object_colors(seg=m8)"]}
+{"id": "60c09cac", "programs": ["scale_by_colors()"]}
+{"id": "62c24649", "programs": ["mirror_concat(mode=v) | mirror_concat(mode=h)"]}
+{"id": "7b7f7511", "programs": ["extract_period() | crop_to_object(sel={by=all},seg=m8)", "extract_period()", "extract_period() | dedupe_adjacent(axis=0)"]}
+{"id": "7fe24cdd", "programs": ["rot_quad(cw=true)"]}
+{"id": "8be77c9e", "programs": ["mirror_concat(mode=v)", "mirror_concat(mode=v) | self_logic(tf=flip_v,mode=or,color=1)"]}
+{"id": "a416b8f3", "programs": ["concat_with(axis=1,tf=id,swap=false)", "tile(ny=1,nx=2)", "concat_with(axis=1,tf=id,swap=true)"]}
+{"id": "a68b268e", "programs": ["overlay_cells(order=fwd)"]}
+{"id": "ac0a08a4", "programs": ["scale_by_colors()"]}
+{"id": "c9e6f938", "programs": ["concat_with(axis=1,tf=flip_h,swap=false)"]}
+{"id": "ce4f8723", "programs": ["half_logic(axis=0,mode=or,color=3)"]}
+{"id": "d19f7514", "programs": ["half_logic(axis=0,mode=or,color=4)"]}
+{"id": "d23f8c26", "programs": ["keep_center_line(axis=1)"]}
+{"id": "dae9d2b5", "programs": ["overlay_parts(ny=1,nx=2,order=[]) | recolor_objects(sel={by=all},seg=m4,color=6)"]}
+{"id": "ded97339", "programs": ["connect_pairs(src=-1,line=8,axis=2)"]}
+{"id": "e133d23d", "programs": ["half_logic(axis=1,mode=or,color=2)"]}
+{"id": "f8ff0b80", "programs": ["recolor_from_marker(erase=true) | colors_by_frequency()", "transpose() | colors_by_frequency()", "colors_by_frequency()"]}

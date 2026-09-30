@@ -207,6 +207,8 @@ def _orbit(mode, i, j, h, w):
 def gen_symhalf(rng, pal, h, w, hint):
     """A symmetric pattern with most cells of every symmetry orbit erased."""
     mode = hint.get("mode", "h")
+    if mode not in ("h", "v", "both", "rot", "d4"):  # hint may come from an unrelated op's parameter
+        mode = "h"
     if mode in ("rot", "d4"):
         h = w = min(h, w)
     out = np.zeros((h, w), dtype=int)
