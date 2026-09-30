@@ -36,3 +36,20 @@ Program example: `recolor_objects(sel={by=largest},seg=c8,color=3) | flip(axis=1
 * **Sampling** (`arcgen/program.py`): ops are chosen and parametrised step by step against a probe grid so
   parameters (colours, selectors) are meaningful; then many inputs are drawn from an op-matched generator
   (`arcgen/generators.py`) and validated: every step must change most pairs, output ≠ input, outputs not all identical.
+
+## Training data for a model (serialization + tokenizer)
+
+Two ways to train a model that reads demonstration pairs and emits the op sequence:
+
+```
+python -m arcgen export --data data/dataset.jsonl --out data/sft.jsonl                    # text: {"prompt","completion"} for any LLM
+python -m arcgen export --data data/dataset.jsonl --out data/sft_tok.jsonl --format tokens # ids for the closed-vocab tokenizer
+python -m arcgen export ... --target output                                                # predict the output grid directly instead
+```
+
+* Every test pair becomes one example: prompt = all `train` pairs + that test input, target = program text.
+* `arcgen.serialize.Tokenizer` — closed vocabulary (~256 tokens: `c0..c9` grid cells, `<nl>`, op names,
+  parameter names, enum values, ints −30..60). Prompts average ~1k tokens (p95 ≈ 2.2k).
+* `parse_program(text)` recovers an executable program from model output (raises `ValueError` if malformed);
+  `check_program(text, pairs)` runs it on the demonstrations — use it to filter samples, do best-of-N
+  sampling or rejection-based self-training, since a wrong program is detected by execution.

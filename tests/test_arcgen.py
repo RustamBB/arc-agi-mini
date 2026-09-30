@@ -98,3 +98,39 @@ def test_generate_writes_arc_format(tmp_path):
     assert set(d) == {"train", "test"} and set(d["train"][0]) == {"input", "output"}
     rec = json.loads((tmp_path / "dataset.jsonl").read_text().splitlines()[0])
     assert rec["program"] and len(rec["traces"]) == len(rec["train"]) + len(rec["test"])
+
+
+def test_program_text_roundtrip_and_tokenizer():
+    from arcgen.program import to_text
+    from arcgen.serialize import Tokenizer, check_program, parse_program
+    tok = Tokenizer()
+    pool = resolve_ops()
+    for i in range(150):
+        t = make_task(9, i, pool)
+        text = to_text(t.program)
+        assert parse_program(text) == t.program          # text -> program is lossless
+        ids = tok.encode_program(text)                     # closed vocab covers every token
+        assert tok.decode_program(ids) == text
+        assert check_program(text, t.train + t.test)       # parsed program reproduces the task
+    x, y = t.train[0]
+    assert (tok.decode_grid(tok.ids(tok.grid_tokens(y))) == y).all()
+
+
+def test_check_program_rejects_bad_text():
+    from arcgen.serialize import check_program
+    pair = [(G("10"), G("01"))]
+    assert check_program("flip(axis=1)", pair)
+    assert not check_program("flip(axis=0)", pair)
+    assert not check_program("nonsense(x=1)", pair)
+    assert not check_program("flip(axis=", pair)
+
+
+def test_export(tmp_path):
+    import subprocess, sys
+    generate(6, str(tmp_path), seed=4, log=lambda *_: None)
+    for fmt in ("text", "tokens"):
+        out = tmp_path / f"{fmt}.jsonl"
+        subprocess.run([sys.executable, "-m", "arcgen", "export", "--data", str(tmp_path / "dataset.jsonl"),
+                        "--out", str(out), "--format", fmt], check=True, capture_output=True)
+        row = json.loads(out.read_text().splitlines()[0])
+        assert row["prompt"] and (row.get("completion") or row.get("target"))

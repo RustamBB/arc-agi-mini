@@ -8,6 +8,7 @@ import numpy as np
 
 from ..core import BG, find_objects, select
 
+MAX_SEL_SIZE = 60  # keeps size thresholds inside the tokenizer's integer vocabulary
 DEFAULT_GENS = ("objects", "sparse", "few", "noise", "rings")
 
 
@@ -60,7 +61,7 @@ def sample_seg(rng) -> str:
 def sample_sel(rng, g, seg) -> dict:
     """Pick a selector that picks a non-empty proper subset of the probe's objects."""
     objs = find_objects(g, seg)
-    sizes = sorted({o.size for o in objs}) or [1]
+    sizes = sorted({o.size for o in objs if o.size <= MAX_SEL_SIZE}) or [1]
     for _ in range(30):
         by = str(rng.choice(_SEL, p=_SEL_P))
         sel = {"by": by}
