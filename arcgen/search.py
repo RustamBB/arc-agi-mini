@@ -46,8 +46,9 @@ def _guide(rng, params, out_colors, in_colors, g=None, sels=None):
             p[k] = int(rng.choice(out_colors))
         elif k in IN_COLOR_KEYS and isinstance(v, int) and v >= 0 and in_colors and rng.random() < .3:
             p[k] = int(rng.choice(in_colors))
-        elif k == "colors" and isinstance(v, list) and out_colors and rng.random() < .7:
-            p[k] = [int(rng.choice(out_colors)) for _ in v]
+        elif k == "colors" and isinstance(v, list) and out_colors and rng.random() < .8:
+            perm = [int(c) for c in rng.permutation(out_colors)]
+            p[k] = [perm[i % len(perm)] for i in range(len(v))]
     return p
 
 
@@ -58,7 +59,8 @@ def search(pairs, depth=3, beam=4, tries=60, top=24, budget=30.0, seed=0, ops=No
     tgt = [np.asarray(b) for _, b in pairs]
     t0 = time.time()
     names = list(ops or OPS)
-    out_cols = [int(c) for c in np.unique(tgt[0])]
+    out_cols = [int(c) for c in np.unique(np.concatenate([t.ravel() for t in tgt])) if c != 0] \
+        or [int(c) for c in np.unique(tgt[0])]
     keep_shape = all(a.shape == b.shape for a, b in zip(ins, tgt))
     frontier = [([], ins, total(ins, tgt))]
     best = frontier[0]

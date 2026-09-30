@@ -126,7 +126,7 @@ def _param_names() -> set[str]:
 ENUMS = (set(_SEL) | set(RAYS) | set(PATTERNS) | set(DIRS)
          | {"c4", "c8", "m4", "m8", "h", "v", "both", "rot", "and", "or", "xor", "nor", "a_not_b",
             "most", "least", "top", "bottom", "left", "right", "asc", "desc", "fwd", "rev",
-            "true", "false", "d4", "any", "all", "inherit", "invert", "minor", "major", "nonempty", "empty"})
+            "true", "false", "d4", "any", "all", "major", "tl", "tr", "bl", "br", "inherit", "invert", "minor", "major", "nonempty", "empty"})
 SPECIAL = ["<pad>", "<bos>", "<eos>", "<train>", "<test>", "<in>", "</in>", "<out>", "</out>",
            "<prog>", "<nl>"]
 PUNCT = list("(){}[],=|")

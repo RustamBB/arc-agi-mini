@@ -26,9 +26,9 @@ def cells_to_pixels(g):
 
 
 @op("pool", "geometry", lambda rng, g: {"k": int(rng.integers(2, 5)),
-                                        "mode": str(rng.choice(["any", "all"]))}, gens=("blocky_noise",))
+                                        "mode": str(rng.choice(["any", "all", "major"]))}, gens=("blocky_noise",))
 def pool(g, k, mode):
-    """Shrink by k: each k x k block becomes its majority colour ('any') or its colour only if uniform ('all')."""
+    """Shrink by k: each k x k block becomes its majority foreground colour ('any'), strict majority incl. background ('major') or its colour only if uniform ('all')."""
     h, w = g.shape
     if h % k or w % k:
         raise OpError("not divisible")
@@ -38,6 +38,8 @@ def pool(g, k, mode):
             b = g[i * k:(i + 1) * k, j * k:(j + 1) * k]
             if mode == "any":
                 out[i, j] = _maj(b)
+            elif mode == "major":
+                out[i, j] = int(np.bincount(b.ravel()).argmax())
             elif (b == b[0, 0]).all():
                 out[i, j] = b[0, 0]
     return out

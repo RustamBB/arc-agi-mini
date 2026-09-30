@@ -124,3 +124,94 @@ def connect_diag(g, src, line):
                     for y, x in between:
                         out[y, x] = lc
     return out
+
+
+@op("crop_fixed", "geometry",
+    lambda rng, g: {"corner": str(rng.choice(["tl", "tr", "bl", "br"])),
+                    "h": int(rng.integers(1, max(2, g.shape[0] // 2 + 1))),
+                    "w": int(rng.integers(1, max(2, g.shape[1] // 2 + 1)))})
+def crop_fixed(g, corner, h, w):
+    """Cut an h x w window out of one corner of the grid."""
+    if h > g.shape[0] or w > g.shape[1]:
+        raise OpError("too big")
+    r = slice(0, h) if corner[0] == "t" else slice(g.shape[0] - h, None)
+    c = slice(0, w) if corner[1] == "l" else slice(g.shape[1] - w, None)
+    return g[r, c].copy()
+
+
+@op("extract_period", "geometry", gens=("periodic",))
+def extract_period(g):
+    """Return the smallest tile whose repetition reproduces the whole grid."""
+    from .relations import _find_period
+    h, w = g.shape
+    known = np.ones(g.shape, dtype=bool)
+    best = None
+    for py in range(1, h + 1):
+        for px in range(1, w + 1):
+            if (py, px) != (h, w) and h % py == 0 and w % px == 0 \
+                    and (best is None or py * px < best[0]) \
+                    and (g == np.tile(g[:py, :px], (h // py, w // px))).all():
+                best = (py * px, py, px)
+    if best is None:
+        raise OpError("not periodic")
+    return g[:best[1], :best[2]].copy()
+
+
+def _parts(g, ny, nx):
+    h, w = g.shape
+    if ny * nx < 2 or h % ny or w % nx:
+        raise OpError("cannot split evenly")
+    a, b = h // ny, w // nx
+    return [g[i * a:(i + 1) * a, j * b:(j + 1) * b] for i in range(ny) for j in range(nx)]
+
+
+def _s_parts(rng, g):
+    ny, nx = [(1, 2), (2, 1), (2, 2), (1, 3), (3, 1)][int(rng.integers(5))]
+    return {"ny": ny, "nx": nx}
+
+
+@op("take_part", "geometry", lambda rng, g: {**_s_parts(rng, g), "idx": int(rng.integers(0, 4))}, gens=("parts",))
+def take_part(g, ny, nx, idx):
+    """Split into ny x nx equal parts (row-major) and return part idx."""
+    parts = _parts(g, ny, nx)
+    if idx >= len(parts):
+        raise OpError("no such part")
+    return parts[idx].copy()
+
+
+@op("overlay_parts", "geometry", lambda rng, g: {**_s_parts(rng, g), "order": []}, gens=("parts",))
+def overlay_parts(g, ny, nx, order):
+    """Split into equal parts and stack them; the first part in `order` wins where several are non-empty."""
+    parts = _parts(g, ny, nx)
+    order = order or list(range(len(parts)))
+    if sorted(order) != list(range(len(parts))):
+        raise OpError("bad order")
+    out = np.zeros_like(parts[0])
+    for i in reversed(order):
+        out = np.where(parts[i] != BG, parts[i], out)
+    return out
+
+
+@op("count_bar_fixed", "object",
+    lambda rng, g: _os(rng, g, color=pick_color(rng), width=int(rng.integers(3, 10))))
+def count_bar_fixed(g, sel, seg, color, width):
+    """1 x width bar whose first N cells are coloured, N = number of selected objects."""
+    n = len(_pick(g, seg, sel)[1])
+    if n == 0 or n > width:
+        raise OpError("bad count")
+    out = np.zeros((1, width), dtype=int)
+    out[0, :n] = color
+    return out
+
+
+@op("color_histogram", "relation", lambda rng, g: {"vertical": bool(rng.integers(0, 2))})
+def color_histogram(g, vertical):
+    """Bar chart of cell counts per foreground colour, most frequent first (columns or rows)."""
+    vals, cnt = np.unique(g[g != BG], return_counts=True)
+    if len(vals) < 2 or len(set(cnt.tolist())) != len(cnt) or cnt.max() > 30:
+        raise OpError("need distinct counts")
+    order = np.argsort(-cnt)
+    out = np.zeros((len(vals), cnt.max()), dtype=int)
+    for i, k in enumerate(order):
+        out[i, :cnt[k]] = vals[k]
+    return out.T[::-1].copy() if vertical else out

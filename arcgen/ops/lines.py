@@ -37,21 +37,22 @@ def shoot_rays(g, src, dir):
 
 
 @op("connect_pairs", "line",
-    lambda rng, g: {"src": pick_present(rng, g),
+    lambda rng, g: {"src": -1 if rng.random() < .3 else pick_present(rng, g),
                     "line": -1 if rng.random() < .5 else pick_color(rng)},
     gens=("aligned", "few"))
 def connect_pairs(g, src, line):
-    """Join same-colour cells that share a row or column with a straight line."""
+    """Join same-colour cells that share a row or column with a straight line (src -1: any colour)."""
     out = g.copy()
-    lc = src if line < 0 else line
     for axis in (0, 1):
         m = g if axis == 0 else g.T
         o = out if axis == 0 else out.T
         for i in range(m.shape[0]):
-            xs = np.nonzero(m[i] == src)[0]
+            xs = np.nonzero(m[i] != BG if src < 0 else m[i] == src)[0]
             for a, b in zip(xs[:-1], xs[1:]):
+                if m[i, a] != m[i, b]:
+                    continue
                 seg = o[i, a + 1:b]
-                seg[seg == BG] = lc
+                seg[seg == BG] = m[i, a] if line < 0 else line
     return out
 
 

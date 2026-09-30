@@ -215,3 +215,26 @@ def test_search_found_ops_known_results():
     assert eq(a("full_lines", "000 010 000", src=1, dir="h"), "000 111 000")
     assert eq(a("full_lines", "000 020 000", src=2, dir="v"), "020 020 020")
     assert eq(a("connect_diag", "1000 0000 0010", src=1, line=4), "1000 0400 0010")
+
+
+def test_connect_any_and_step_toward():
+    a = lambda name, g, **p: apply_step(G(g), name, p)
+    assert (a("connect_pairs", "10001 20003", src=-1, line=-1) == G("11111 20003")).all()
+    assert (a("connect_pairs", "10002", src=-1, line=-1) == G("10002")).all()
+    assert (a("step_toward", "3000 0000 0004", mover=3, target=4, steps=1) == G("0000 0300 0004")).all()
+
+
+def test_shape_changing_ops():
+    a = lambda name, g, **p: apply_step(G(g), name, p)
+    eq = lambda x, y: (x == G(y)).all()
+    assert eq(a("crop_fixed", "123 456 789", corner="br", h=2, w=2), "56 89")
+    assert eq(a("crop_fixed", "123 456 789", corner="tl", h=1, w=3), "123")
+    assert eq(a("extract_period", "1212 3434 1212 3434"), "12 34")
+    assert eq(a("extract_period", "121212"), "12")
+    assert eq(a("take_part", "1122 1122", ny=1, nx=2, idx=1), "22 22")
+    assert eq(a("overlay_parts", "1102", ny=1, nx=2, order=[0, 1]), "11")
+    assert eq(a("overlay_parts", "1102", ny=1, nx=2, order=[1, 0]), "12")
+    assert eq(a("count_bar_fixed", "1010", sel={"by": "all"}, seg="c8", color=5, width=4), "5500")
+    assert eq(a("color_histogram", "1112 0000", vertical=False), "111 200")
+    assert eq(a("color_histogram", "1112 0000", vertical=True), "10 10 12")
+    assert eq(a("pool", "1100 1100 0010 0000", k=2, mode="major"), "10 00")

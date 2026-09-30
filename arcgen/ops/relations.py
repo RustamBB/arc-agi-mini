@@ -410,3 +410,27 @@ def fill_cells(g, mode, color):
                 raise OpError("needs an explicit colour")
             out[r0:r1, c0:c1] = color
     return out
+
+
+@op("step_toward", "relation",
+    lambda rng, g: {**dict(zip(("mover", "target"), _two_colors(rng, g))), "steps": int(rng.integers(1, 4))},
+    gens=("attract", "few"))
+def step_toward(g, mover, target, steps):
+    """Every `mover` object takes `steps` cells (diagonals allowed) towards the nearest `target` cell."""
+    tys, txs = np.nonzero(g == target)
+    if len(tys) == 0:
+        raise OpError("no target")
+    out = g.copy()
+    objs = [o for o in find_objects(g, "c8") if o.color == mover]
+    for o in objs:
+        out[o.rows, o.cols] = BG
+    for o in objs:
+        cy, cx = o.rows.mean(), o.cols.mean()
+        d = np.abs(tys - cy) + np.abs(txs - cx)
+        k = int(np.argmin(d))
+        dy, dx = int(np.sign(tys[k] - cy)), int(np.sign(txs[k] - cx))
+        r, c = o.rows + dy * steps, o.cols + dx * steps
+        if r.min() < 0 or c.min() < 0 or r.max() >= g.shape[0] or c.max() >= g.shape[1]:
+            raise OpError("out of bounds")
+        out[r, c] = o.vals
+    return out

@@ -268,3 +268,24 @@ def gen_symbbox(rng, pal, h, w, hint):
 
 
 GENERATORS["symbbox"] = gen_symbbox
+
+
+def gen_periodic(rng, pal, h, w, hint):
+    py, px = int(rng.integers(1, 5)), int(rng.integers(1, 5))
+    tile = np.where(rng.random((py, px)) < .8, rng.choice(pal, size=(py, px)), BG)
+    tile[0, 0] = _c(rng, pal)
+    return np.tile(tile, (int(rng.integers(2, 5)), int(rng.integers(2, 5))))
+
+
+def gen_parts(rng, pal, h, w, hint):
+    ny, nx = int(hint.get("ny", 2)), int(hint.get("nx", 2))
+    a, b = int(rng.integers(2, 7)), int(rng.integers(2, 7))
+    cols = list(rng.permutation(pal))
+    rows = []
+    for i in range(ny):
+        rows.append(np.hstack([np.where(rng.random((a, b)) < .4, cols[(i * nx + j) % len(cols)], BG)
+                               for j in range(nx)]))
+    return np.vstack(rows)
+
+
+GENERATORS.update({"periodic": gen_periodic, "parts": gen_parts})
