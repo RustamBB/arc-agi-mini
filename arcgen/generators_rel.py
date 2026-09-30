@@ -219,3 +219,52 @@ GENERATORS.update({
     "template": gen_template, "attract": gen_attract, "markers": gen_markers,
     "containers": gen_containers,
 })
+
+
+def gen_blocky_noise(rng, pal, h, w, hint):
+    k = int(hint.get("k", 2))
+    a, b = max(2, h // k), max(2, w // k)
+    g = np.kron(np.where(rng.random((a, b)) < .5, rng.choice(pal, size=(a, b)), BG), np.ones((k, k), dtype=int))
+    m = rng.random(g.shape) < .1
+    return np.where(m, rng.choice(pal, size=g.shape), g)
+
+
+def gen_stretched(rng, pal, h, w, hint):
+    shape = (int(rng.integers(2, 6)), int(rng.integers(2, 6)))
+    base = np.where(rng.random(shape) < .7, rng.choice(pal, size=shape), BG)
+    rows = np.repeat(np.arange(base.shape[0]), rng.integers(1, 4, base.shape[0]))
+    cols = np.repeat(np.arange(base.shape[1]), rng.integers(1, 4, base.shape[1]))
+    return base[np.ix_(rows, cols)]
+
+
+def gen_shapepairs(rng, pal, h, w, hint):
+    src = int(hint.get("src", pal[0]))
+    others = _without(pal, src)
+    g = np.zeros((h, w), dtype=int)
+    for _ in range(int(rng.integers(1, 4))):
+        proto = _shape(rng, [1])
+        if (proto != 0).sum() < 2:
+            continue
+        for col in [_c(rng, others)] + [src] * int(rng.integers(1, 3)):
+            _place(rng, g, np.where(proto != 0, col, 0), gap=1)
+    return g
+
+
+GENERATORS.update({"blocky_noise": gen_blocky_noise, "stretched": gen_stretched, "shapepairs": gen_shapepairs})
+
+
+def gen_symbbox(rng, pal, h, w, hint):
+    """A partly erased symmetric pattern placed at a random offset inside a larger empty canvas."""
+    mode = hint.get("mode", "h")
+    k = int(rng.integers(3, 8))
+    pat = GENERATORS["symhalf"](rng, pal, k, k, {"mode": mode})
+    if mode not in ("rot", "d4"):
+        pat = pat[:, :k]
+    H, W = max(h, pat.shape[0] + 2), max(w, pat.shape[1] + 2)
+    g = np.zeros((H, W), dtype=int)
+    y, x = int(rng.integers(0, H - pat.shape[0] + 1)), int(rng.integers(0, W - pat.shape[1] + 1))
+    g[y:y + pat.shape[0], x:x + pat.shape[1]] = pat
+    return g
+
+
+GENERATORS["symbbox"] = gen_symbbox

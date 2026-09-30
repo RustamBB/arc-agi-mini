@@ -122,9 +122,18 @@ def mirror_concat(g, mode):
 
 
 @op("symmetrize", "geometry",
-    lambda rng, g: {"mode": str(rng.choice(["h", "v", "both", "rot"]))}, gens=("symhalf",))
+    lambda rng, g: {"mode": str(rng.choice(["h", "v", "both", "rot", "d4"]))}, gens=("symhalf",))
 def symmetrize(g, mode):
-    """Complete a symmetric pattern by overlaying mirrored/rotated copies."""
+    """Complete a symmetric pattern by overlaying mirrored/rotated copies (d4: all 8 symmetries)."""
+    return sym_complete(g, mode)
+
+
+def sym_complete(g, mode):
+    if mode == "d4":
+        if g.shape[0] != g.shape[1]:
+            raise OpError("d4 needs square")
+        out = sym_complete(g, "rot")
+        return _overlay(out, out[:, ::-1])
     if mode == "h":
         return _overlay(g, g[:, ::-1])
     if mode == "v":

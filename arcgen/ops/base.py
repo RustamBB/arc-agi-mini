@@ -86,3 +86,25 @@ _SEL_W = {
 _SEL = list(_SEL_W)
 _SEL_P = np.array(list(_SEL_W.values()), dtype=float)
 _SEL_P /= _SEL_P.sum()
+
+
+def enumerate_selectors(g, seg) -> list[dict]:
+    """Every selector that picks a non-empty subset of ``g``'s objects (search uses this)."""
+    objs = find_objects(g, seg)
+    if not objs:
+        return []
+    cols = sorted({o.color for o in objs})
+    sizes = sorted({o.size for o in objs if o.size <= MAX_SEL_SIZE})
+    cands = [{"by": b} for b in _SEL if b not in ("color", "not_color", "size_gt", "size_lt", "size_eq",
+                                                  "touching")]
+    cands += [{"by": b, "value": c} for b in ("color", "not_color", "touching") for c in cols]
+    cands += [{"by": b, "value": s} for b in ("size_eq", "size_gt", "size_lt") for s in sizes]
+    out, seen = [], set()
+    for sel in cands:
+        ch = select(objs, sel, g.shape, g)
+        if ch:
+            key = tuple(id(o) for o in ch)
+            if key not in seen or sel["by"] == "all":
+                seen.add(key)
+                out.append(sel)
+    return out

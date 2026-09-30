@@ -109,7 +109,21 @@ class Obj:
         return len({int(v) for v in np.unique(lab) if v not in (0, outside)})
 
 
+_OBJ_CACHE: dict = {}
+
+
 def find_objects(g: np.ndarray, seg: str = "c8") -> list[Obj]:
+    """Cached wrapper: objects are treated as read-only by every op."""
+    key = (g.tobytes(), g.shape, seg)
+    hit = _OBJ_CACHE.get(key)
+    if hit is None:
+        if len(_OBJ_CACHE) > 4000:
+            _OBJ_CACHE.clear()
+        hit = _OBJ_CACHE[key] = _find_objects(g, seg)
+    return list(hit)
+
+
+def _find_objects(g: np.ndarray, seg: str = "c8") -> list[Obj]:
     """Split ``g`` into objects. ``seg`` = ``c|m`` + ``4|8``:
     ``c`` separates by colour, ``m`` allows multicolour objects."""
     conn = 8 if seg.endswith("8") else 4

@@ -181,3 +181,37 @@ def test_relational_selectors():
     d = G("1010 0000 0220")  # all single/line shapes: two 1-dots share a shape; the 22 pair is unique
     r = apply_step(d, "recolor_objects", {"sel": {"by": "dup_shape"}, "seg": "c8", "color": 7})
     assert (r == G("7070 0000 0220")).all()
+
+
+def test_extra_ops_known_results():
+    a = lambda n, g, **p: apply_step(G(g), n, p)
+    eq = lambda x, y: (x == G(y)).all()
+    assert eq(a("cells_to_pixels", "11244 10204 22222 30255 00205"), "14 35")
+    assert eq(a("pool", "1100 1100 0011 0011", k=2, mode="any"), "10 01")
+    assert eq(a("pool", "1101 1100", k=2, mode="all"), "10")
+    assert eq(a("dedupe_adjacent", "1122 1122 3344", axis=2), "12 34")
+    assert eq(a("tile_flip", "12 34", ny=1, nx=2), "1221 3443")
+    assert eq(a("tile_flip", "12 34", ny=2, nx=1), "12 34 34 12")
+    assert eq(a("rot_quad", "12 34", cw=False), "1224 3413 3143 4221")
+    assert eq(a("shear", "123 456 789", step=1, axis=1), "123 645 897")
+    assert eq(a("scale_by_colors", "12"), "1122 1122")
+    assert eq(a("object_color_cell", "1100 0002", sel={"by": "largest"}, seg="c8"), "1")
+    assert eq(a("swap_object_colors", "1122 0000", seg="m8"), "2211 0000")
+    assert eq(a("rotate_objects", "10 11", sel={"by": "all"}, seg="c8", k=1), "01 11")
+    assert eq(a("recolor_by_shape_match", "110022 000000 110000", src=1), "220022 000000 220000")
+
+
+def test_search_found_ops_known_results():
+    a = lambda name, g, **p: apply_step(G(g), name, p)
+    eq = lambda x, y: (x == G(y)).all()
+    assert eq(a("pad_replicate", "12 34", n=1, corners=True), "0120 1122 3344 0340")
+    assert eq(a("pad_replicate", "12 34", n=1, corners=False), "1122 1122 3344 3344")
+    assert eq(a("symmetrize_bbox", "0000 0100 0020 0000", mode="both"), "0000 0110 0220 0000")
+    assert eq(a("paint_interior", "11111 11111 11111", sel={"by": "all"}, seg="c8", color=4),
+              "11111 14441 11111")
+    assert eq(a("recolor_split", "1022", sel={"by": "largest"}, seg="c8", yes=5, no=6), "6055")
+    assert eq(a("slide_cells", "1020 0000", src=1, dir="right"), "0120 0000")
+    assert eq(a("crop_to_color", "0000 0330 0300 0000", color=3, inner=False), "33 30")
+    assert eq(a("full_lines", "000 010 000", src=1, dir="h"), "000 111 000")
+    assert eq(a("full_lines", "000 020 000", src=2, dir="v"), "020 020 020")
+    assert eq(a("connect_diag", "1000 0000 0010", src=1, line=4), "1000 0400 0010")

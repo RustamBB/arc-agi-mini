@@ -198,13 +198,16 @@ def _orbit(mode, i, j, h, w):
         return {(i, j), (h - 1 - i, j)}
     if mode == "both":
         return {(i, j), (i, w - 1 - j), (h - 1 - i, j), (h - 1 - i, w - 1 - j)}
-    return {(i, j), (j, h - 1 - i), (h - 1 - i, h - 1 - j), (h - 1 - j, i)}  # rot
+    rot = {(i, j), (j, h - 1 - i), (h - 1 - i, h - 1 - j), (h - 1 - j, i)}
+    if mode == "d4":
+        return rot | {(a, h - 1 - b) for a, b in rot}
+    return rot
 
 
 def gen_symhalf(rng, pal, h, w, hint):
     """A symmetric pattern with most cells of every symmetry orbit erased."""
     mode = hint.get("mode", "h")
-    if mode == "rot":
+    if mode in ("rot", "d4"):
         h = w = min(h, w)
     out = np.zeros((h, w), dtype=int)
     seen = set()
