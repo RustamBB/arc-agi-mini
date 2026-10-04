@@ -23,6 +23,9 @@ def main():
     g.add_argument("--exclude", help="comma separated op names to skip")
     g.add_argument("--categories", help="geometry,color,object,line,structure")
     g.add_argument("--trace", action="store_true", help="store intermediate grids per pair")
+    g.add_argument("--kind", choices=["random", "curated", "mixed"], default="random",
+                   help="random op sampling | hand-designed task families | alternate both")
+    g.add_argument("--families", help="comma separated family names (curated/mixed)")
     g.add_argument("--workers", type=int, default=1, help="parallel processes")
     g.add_argument("--no-arc-files", action="store_true", help="only write dataset.jsonl")
 
@@ -42,12 +45,18 @@ def main():
                    help="text: prompt/completion strings for any LLM; tokens: ids for the closed-vocab Tokenizer")
 
     sub.add_parser("list-ops", help="list the operation bank")
+    sub.add_parser("families", help="list the hand-designed task families")
     a = ap.parse_args()
 
     if a.cmd == "list-ops":
         for name, o in sorted(OPS.items(), key=lambda kv: (kv[1].category, kv[0])):
             print(f"{o.category:10s} {name:24s} {o.doc}")
         print(f"\n{len(OPS)} operations")
+    elif a.cmd == "families":
+        from .curated import list_families
+        for f in list_families():
+            print(f"{f.name:24s} gen={f.gen:11s} tags={','.join(f.tags)}")
+        print(f"\n{len(list_families())} families")
     elif a.cmd == "show":
         pool = resolve_ops(_list(a.include), None, _list(a.categories))
         for i in range(a.n):
@@ -77,7 +86,8 @@ def main():
         print(f"wrote {n} examples to {a.out} (vocab size {len(tok)})")
     else:
         st = generate(a.n, a.out, a.seed, a.min_len, a.max_len, _list(a.include), _list(a.exclude),
-                      _list(a.categories), a.trace, not a.no_arc_files, workers=a.workers)
+                      _list(a.categories), a.trace, not a.no_arc_files, workers=a.workers,
+                      kind=a.kind, families=_list(a.families))
         print(json.dumps(st, indent=2))
 
 
