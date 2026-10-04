@@ -298,3 +298,35 @@ def test_mixed_and_curated_generation(tmp_path):
     assert st["tasks"] == 30
     recs = [json.loads(l) for l in (tmp_path / "dataset.jsonl").read_text().splitlines()]
     assert any("family" in r for r in recs) and any("family" not in r for r in recs)
+
+
+def test_kaggle_branch_accepts_clear_rule_and_fails_closed():
+    from arcgen.kaggle_branch import verified_arcgen_predictions
+    rng = np.random.default_rng(0)
+    grids = [rng.integers(0, 4, size=(5, 6)) for _ in range(4)]
+    clear = {"train": [{"input": g.tolist(), "output": g[:, ::-1].tolist()} for g in grids[:3]],
+             "test": [{"input": grids[3].tolist()}]}
+    preds, audit = verified_arcgen_predictions(clear, time_limit=6)
+    assert audit["accepted"] and (preds[0] == grids[3][:, ::-1]).all()
+    noise = {"train": [{"input": g.tolist(), "output": rng.integers(0, 4, size=(5, 6)).tolist()} for g in grids[:3]],
+             "test": [{"input": grids[3].tolist()}]}
+    preds, audit = verified_arcgen_predictions(noise, time_limit=3)
+    assert not audit["accepted"] and preds == []
+
+
+def test_kaggle_notebook_builder(tmp_path):
+    import ast, subprocess, sys
+    src = "notebooks/original/arc-agi2-original-kg.ipynb"
+    out = tmp_path / "nb.ipynb"
+    subprocess.run([sys.executable, "tools/build_kaggle_notebook.py", "--src", src, "--out", str(out)], check=True,
+                   capture_output=True)
+    nb = json.loads(out.read_text())
+    code = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
+    joined = "\n".join(code)
+    assert "arcgen.kaggle_branch" in joined and "with_arcgen" in joined and "hybrid_arcgen" in joined
+    for c in code:  # every code cell still parses (shell/magic lines removed)
+        body = "\n".join(l for l in c.splitlines() if not l.startswith(("!", "%%")))
+        ast.parse(body)
+    order = [i for i, c in enumerate(code) if "arcgen_predictions.jsonl" in c and "Popen" in c]
+    run = [i for i, c in enumerate(code) if "python starter.py" in c]
+    assert order and run and order[0] < run[0]  # background search starts before the blocking Qwen run

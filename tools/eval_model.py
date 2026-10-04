@@ -11,28 +11,8 @@ from pathlib import Path
 import numpy as np
 import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from arcgen.model import Encoder, load  # noqa: E402
+from arcgen.model import Encoder, load, predict_programs as predict  # noqa: E402
 from arcgen.serialize import check_program  # noqa: E402
-
-
-def predict(model, enc, train, query, n, temp):
-    maxlen = model.cfg["maxlen"] - 128
-    """Returns (list of distinct program texts, n_demos used) or (None, 0) if the prompt cannot fit."""
-    demos = list(train)
-    while demos:
-        p = enc.prompt(demos, query)
-        if len(p[0]) <= maxlen - 100:
-            break
-        demos.pop()
-    if not demos:
-        return None, 0
-    outs = model.sample(enc, p, n=1, greedy=True) + (model.sample(enc, p, n=n, temp=temp) if n else [])
-    texts = []
-    for o in outs:
-        t = enc.tok.decode_program(o)
-        if t and t not in texts:
-            texts.append(t)
-    return texts, len(demos)
 
 
 def main():

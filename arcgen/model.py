@@ -218,3 +218,23 @@ def load(path, device="cpu"):
     m = GPT(**ck["cfg"])
     m.load_state_dict(ck["state"])
     return m.to(device).eval()
+
+
+def predict_programs(model, enc, train, query, n, temp):
+    """Returns (list of distinct program texts, n_demos used) or (None, 0) if the prompt cannot fit."""
+    maxlen = model.cfg["maxlen"] - 128
+    demos = list(train)
+    while demos:
+        p = enc.prompt(demos, query)
+        if len(p[0]) <= maxlen - 100:
+            break
+        demos.pop()
+    if not demos:
+        return None, 0
+    outs = model.sample(enc, p, n=1, greedy=True) + (model.sample(enc, p, n=n, temp=temp) if n else [])
+    texts = []
+    for o in outs:
+        t = enc.tok.decode_program(o)
+        if t and t not in texts:
+            texts.append(t)
+    return texts, len(demos)
