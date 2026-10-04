@@ -277,3 +277,24 @@ def test_check_program_survives_garbage_params():
     for bad in ("recolor_objects(sel=3,seg=5,color=1)", "flip(axis=[7])", "tile(ny=-3,nx=x)",
                 "recolor_by_size_rank(colors=5,seg=c8)", "pad(n=4,color=true)"):
         assert check_program(bad, pair) is False
+
+
+def test_curated_families_produce_verified_tasks():
+    from arcgen.curated import FAMILIES, make_curated_task
+    from arcgen.program import to_text
+    from arcgen.serialize import check_program, parse_program
+    assert len(FAMILIES) >= 30
+    for name in FAMILIES:
+        t = make_curated_task(3, 1, [name])
+        assert t.extra["family"] == name and t.extra["story"]
+        text = to_text(t.program)
+        assert parse_program(text) == t.program
+        assert check_program(text, t.train + t.test), name
+        assert len(t.program) >= 2, name  # families are multi-step stories
+
+
+def test_mixed_and_curated_generation(tmp_path):
+    st = generate(30, str(tmp_path), seed=5, kind="mixed", log=lambda *_: None)
+    assert st["tasks"] == 30
+    recs = [json.loads(l) for l in (tmp_path / "dataset.jsonl").read_text().splitlines()]
+    assert any("family" in r for r in recs) and any("family" not in r for r in recs)

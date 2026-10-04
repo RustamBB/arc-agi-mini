@@ -165,3 +165,23 @@ Take-aways: restricting the search to the model's guesses *hurts* (a weak model 
 guesses as a cheap first stage in front of the full search gives a small gain (+2 to +6 tasks of 125, i.e. a few
 points — with n=125 this is suggestive, not conclusive). The gain should grow with a better model:
 see `docs/GPU_TRAINING.md`. Solutions: `examples/guided_subset_solutions.jsonl`.
+
+## Hand-designed task families (`arcgen/curated.py`) and the notebook
+
+Random op sampling rarely yields puzzles whose second step depends on what the first one *introduced*. The 33
+**families** are small stories with linked parameters, a matching input generator and an English description, e.g.
+*"Paint the largest object green, then cut it out"*, *"Erase speckles, then flood every closed ring"*,
+*"Repair the holes in the carpet, then output its smallest repeating motif"*, *"Objects fly to the wall, then glow"*.
+
+```
+python -m arcgen families                                                        # list them
+python -m arcgen generate --kind curated --n 50000 --out data/cur --no-arc-files   # only families
+python -m arcgen generate --kind mixed   --n 200000 --out data/train --workers 12 --no-arc-files   # 50/50 with random sampling
+```
+Records get extra fields `family`, `story`, `tags`. Add your own with the `@family(...)` decorator (see the notebook, section 4).
+
+`notebooks/arc_synthetic_playground.ipynb` (Colab / Kaggle / local) walks through: operation bank → browse puzzles with
+step-by-step solutions → write a new family → build a mixed dataset → train → per-token diagnosis → execution-verified
+evaluation → model+search hybrid on a held-out (or real) task. `QUICK = True` runs the whole thing in ~1 minute on CPU.
+Whether curated data helps the model is an open question: compare `--kind random` vs `--kind mixed` at equal size on
+`tools/eval_model.py --real` before committing to a long run.

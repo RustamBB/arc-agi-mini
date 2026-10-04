@@ -62,6 +62,7 @@ def record(task: Task, tid: str, with_trace: bool) -> dict:
         "categories": sorted({OPS[s["op"]].category for s in task.program}),
         "input_generator": task.gen,
     }
+    rec.update(getattr(task, "extra", {}))  # curated tasks: family / story / tags
     if with_trace:
         rec["traces"] = [[g.tolist() for g in t] for t in task.traces]
     return rec
@@ -76,25 +77,33 @@ def resolve_ops(include=None, exclude=None, categories=None) -> list[str]:
     return sorted(pool)
 
 
+def build_one(kind, seed, i, pool, lo, hi, families=None):
+    """kind: random (op sampling) | curated (hand-designed families) | mixed (alternating)."""
+    if kind == "curated" or (kind == "mixed" and i % 2):
+        from .curated import make_curated_task
+        return make_curated_task(seed, i, families)
+    return make_task(seed, i, pool, lo, hi)
+
+
 def _work(args):
-    seed, i, pool, lo, hi = args
+    kind, seed, i, pool, lo, hi, families = args
     try:
-        return make_task(seed, i, pool, lo, hi)
+        return build_one(kind, seed, i, pool, lo, hi, families)
     except RuntimeError:
         return None
 
 
-def _tasks(seed, op_pool, min_len, max_len, workers):
+def _tasks(seed, op_pool, min_len, max_len, workers, kind="random", families=None):
     """Endless deterministic stream of tasks (index order), optionally built by a process pool."""
     if workers <= 1:
         i = 0
         while True:
-            yield make_task(seed, i, op_pool, min_len, max_len)
+            yield build_one(kind, seed, i, op_pool, min_len, max_len, families)
             i += 1
     with mp.Pool(workers) as pool:
         start, batch = 0, workers * 16
         while True:  # bounded batches keep memory flat and results in index order
-            jobs = [(seed, i, op_pool, min_len, max_len) for i in range(start, start + batch)]
+            jobs = [(kind, seed, i, op_pool, min_len, max_len, families) for i in range(start, start + batch)]
             start += batch
             for t in pool.map(_work, jobs, chunksize=4):
                 if t is not None:
@@ -102,14 +111,14 @@ def _tasks(seed, op_pool, min_len, max_len, workers):
 
 
 def generate(n: int, out: str, seed: int = 0, min_len=1, max_len=4, include=None, exclude=None,
-             categories=None, trace=False, arc_files=True, log=print, workers=1) -> dict:
+             categories=None, trace=False, arc_files=True, log=print, workers=1, kind="random", families=None) -> dict:
     op_pool = resolve_ops(include, exclude, categories)
     outdir = Path(out)
     (outdir / "tasks").mkdir(parents=True, exist_ok=True)
     seen, ops_used, lens = set(), Counter(), Counter()
     written, i = 0, 0
     with open(outdir / "dataset.jsonl", "w") as f:
-        for task in _tasks(seed, op_pool, min_len, max_len, workers):
+        for task in _tasks(seed, op_pool, min_len, max_len, workers, kind, families):
             if written >= n:
                 break
             i += 1

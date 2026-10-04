@@ -300,3 +300,40 @@ def gen_odd(rng, pal, h, w, hint):
 
 
 GENERATORS["odd"] = gen_odd
+
+
+def gen_noisyrings(rng, pal, h, w, hint):
+    """Closed/open rings plus scattered single-pixel speckles of the same palette (denoise-then-fill)."""
+    g = GENERATORS["rings"](rng, pal, h, w, hint)
+    for _ in range(int(rng.integers(3, 9))):
+        y, x = int(rng.integers(h)), int(rng.integers(w))
+        if g[max(0, y - 1):y + 2, max(0, x - 1):x + 2].max() == 0:
+            g[y, x] = _c(rng, pal)
+    return g
+
+
+def gen_tiledx(rng, pal, h, w, hint):
+    """Exactly periodic carpet (whole number of tiles) with masked patches, so the motif is recoverable."""
+    mask = int(hint.get("mask", 0))
+    cols = _without(pal, mask)
+    for _ in range(30):
+        py, px = int(rng.integers(1, 4)), int(rng.integers(1, 4))
+        tile = rng.choice(cols, size=(py, px))
+        if py * px > 1 and len(np.unique(tile)) < 2:
+            continue
+        ny, nx = int(rng.integers(2, 5)), int(rng.integers(2, 5))
+        g = np.tile(tile, (ny, nx))
+        m = np.zeros(g.shape, dtype=bool)
+        for _ in range(int(rng.integers(1, 3))):
+            a, b = min(int(rng.integers(1, 4)), g.shape[0] - 1), min(int(rng.integers(1, 4)), g.shape[1] - 1)
+            y, x = int(rng.integers(0, g.shape[0] - a + 1)), int(rng.integers(0, g.shape[1] - b + 1))
+            m[y:y + a, x:x + b] = True
+        ii, jj = np.indices(g.shape)
+        cls = (ii % py) * px + jj % px
+        if len(np.unique(cls[~m])) == py * px:
+            g[m] = mask
+            return g
+    return np.tile(np.array([[1, 2], [2, 1]]), (3, 3))
+
+
+GENERATORS.update({"noisyrings": gen_noisyrings, "tiledx": gen_tiledx})

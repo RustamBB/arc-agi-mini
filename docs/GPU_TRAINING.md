@@ -15,7 +15,7 @@ python -c "import torch; print(torch.cuda.get_device_name(0), torch.cuda.is_bf16
 
 ## 1. Data (CPU, ~15 min for 200k tasks; ~0.8 GB on disk, ~1.5 GB RAM when loaded)
 ```bash
-python -m arcgen generate --n 200000 --out data/train --seed 100 --workers 12 --no-arc-files
+python -m arcgen generate --n 200000 --out data/train --seed 100 --workers 12 --no-arc-files --kind mixed   # or --kind random for the baseline
 python -m arcgen generate --n 1000   --out data/val   --seed 200 --workers 12 --no-arc-files
 ```
 
