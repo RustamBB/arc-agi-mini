@@ -54,3 +54,16 @@ real ARC training 2.3 %, hybrid ≈ +2–6 tasks per 125.
 * Not implemented yet, worth adding once the baseline runs: colour-permutation / transpose augmentation of demos,
   re-weighting ops that occur in real tasks (`examples/real_task_programs.jsonl`), test-time training on the demos.
 * Tell me the smoke-test speed (`step … s`) and `peakVRAM` and I will tune `--bs/--accum/--d/--layers` and the step budget.
+
+## Diagnosing a run: `val token-acc` is misleading
+Most program tokens are trivial (brackets, parameter names ≈ 97–100 % accurate), so `val token-acc` plateaus around
+0.80 even when the model has learned little about *which op* to pick. Use the per-category diagnosis on a checkpoint
+(copy it first — the trainer overwrites `--out` every `--eval-every` steps; it can run while training):
+```bash
+cp model_15m.pt ckpt.pt
+python tools/diagnose_model.py --model ckpt.pt --data data/val/dataset.jsonl --n 300 --device cuda
+```
+Reference (5 M-param CPU model, 5000 steps): op-name accuracy 11.7 %, first-op CE 3.72 nats vs 4.35 nats for a
+model that ignores the grids (first-op accuracy 12 % vs 4 % for "always the most common op"), numbers 40 %.
+A healthy run shows op-name accuracy and first-op CE improving steadily; for the real test run
+`tools/eval_model.py --synthetic` on the same checkpoint (execution-verified programs).
