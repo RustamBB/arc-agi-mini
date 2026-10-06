@@ -37,3 +37,13 @@ valid grids that differ from their inputs. The search is a bounded beam search, 
 python tools/build_kaggle_notebook.py --src notebooks/original/arc-agi2-original-kg.ipynb --out notebooks/arc_agi2_with_arcgen.ipynb
 python tools/test_kaggle_integration.py notebooks/arc_agi2_with_arcgen.ipynb arc-agi_training_challenges.json
 ```
+
+## Diagnosing a Kaggle run
+```bash
+python tools/analyze_kaggle_run.py --work /kaggle/working \
+    --solutions /kaggle/input/competitions/arc-prize-2026-arc-agi-2/arc-agi_evaluation_solutions.json
+```
+Prints the credit of every submission variant (Qwen baseline / critic / v2 / v3 / final), how many tasks the arcgen branch
+processed and accepted, how many accepted predictions were right or wrong against the public solutions, the rejection
+reasons, and the queries where it replaced attempt_2. The branch can only help on queries where Qwen's attempt_1 is wrong AND
+v2/v3 accepted nothing AND arcgen accepted a correct program — on the public evaluation set that is expected to be very few.

@@ -330,3 +330,19 @@ def test_kaggle_notebook_builder(tmp_path):
     order = [i for i, c in enumerate(code) if "arcgen_predictions.jsonl" in c and "Popen" in c]
     run = [i for i, c in enumerate(code) if "python starter.py" in c]
     assert order and run and order[0] < run[0]  # background search starts before the blocking Qwen run
+
+
+def test_analyze_kaggle_run(tmp_path):
+    import sys
+    sys.path.insert(0, "tools")
+    from analyze_kaggle_run import analyze
+    a, b, c = [[1]], [[2]], [[3]]
+    sols = {"t1": [a], "t2": [b, c]}
+    mk = lambda r: {"t1": [{"attempt_1": r[0][0], "attempt_2": r[0][1]}],
+                    "t2": [{"attempt_1": r[1][0], "attempt_2": r[1][1]}] * 1 + [{"attempt_1": c, "attempt_2": c}]}
+    (tmp_path / "submission_v3_without_arcgen.json").write_text(json.dumps(mk([(c, c), (b, b)])))
+    (tmp_path / "submission.json").write_text(json.dumps(mk([(c, a), (b, b)])))
+    (tmp_path / "arcgen_predictions.jsonl").write_text(json.dumps(
+        {"task_id": "t1", "accepted": True, "audit": {}, "predictions": [a]}) + "\n")
+    out = "\n".join(analyze(tmp_path, sols))
+    assert "+1.00 (1 tasks gained)" in out and "1 right, 0 wrong" in out
