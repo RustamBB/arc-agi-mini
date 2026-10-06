@@ -69,3 +69,20 @@ python -m arcnet.train \
 Memory/speed: attention is dense over ≈976 tokens with a [B,H,T,T] bias (≈0.5 GB at B=32); expect on the order of
 100 samples/s on an A100 (my estimate, unmeasured). Ablations to run (same budget): `--ladder` off / `fractional` / `compositional`, `--ladder-order cumulative|pairs|both`, `--ttrl-steps 0`,
 `--aug 1`. Eval credit is printed every `--eval-every` steps (task credit with 2 attempts over the eval demos-trained IDs).
+
+## Trying it on Kaggle / Colab without any pre-training (`notebooks/arcnet_kaggle.ipynb`)
+arcnet needs no pre-trained weights: each task's rule is learned from the task's own demos (per-(task, augmentation)
+embedding), so "just try it" means *training inside the notebook for a fixed time*. An **untrained** model is random.
+```
+Kaggle: add the ARC Prize 2026 competition data, turn a GPU on, Run All.  (no internet needed, the code is embedded)
+Colab / local: put arc-agi_training_challenges.json, arc-agi_evaluation_challenges.json (+ arc-agi_evaluation_solutions.json
+               to score) in a folder and set ARC_ROOT=<folder>.
+ARCNET_MINUTES=60 (default) is the whole training budget (70 % main phase, 30 % test-time phase on the evaluation tasks);
+ARCNET_QUICK=1 is a 1-minute CPU smoke test.
+```
+It prints the public-evaluation credit (2 attempts), writes `arcnet_candidates.json` (top-8 grids + scores per test input),
+`submission_arcnet.json` and `arcnet.pt`, and — if `qwen_candidate_pool.json` is present — how many queries arcnet gets
+right that the Qwen hybrid misses (the only reason to ensemble it). Verified here: the whole notebook runs end-to-end on the
+real ARC files (tiny CPU config); data loading is ~210 samples/s per CPU worker (4.7 ms), enough for a GPU. **Not
+verified**: GPU speed/memory, the fp16 path used on T4/P100 (GradScaler), and any score — expect low numbers after an hour.
+Rebuild after code changes: `python tools/build_arcnet_notebook.py`.

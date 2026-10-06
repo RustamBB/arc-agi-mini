@@ -30,41 +30,54 @@ def make_optimizer(model, lr, wd=0.05, task_mult=10.0):
 
 
 def train_phase(model, tasks, sampler, steps, bs, lr, device, amp=False, workers=0, state=None, probe_tasks=None,
-                probe_every=100, eval_fn=None, eval_every=0, log=print, name="train", opt=None, warmup=200):
+                probe_every=100, eval_fn=None, eval_every=0, log=print, name="train", opt=None, warmup=200,
+                time_budget=None):
+    """amp: False | True/'bf16' | 'fp16' (T4/P100 have no bf16). time_budget (seconds) ends the phase early and makes the
+    cosine learning-rate schedule follow elapsed time, so a fixed wall-clock budget is used completely."""
     loader = torch.utils.data.DataLoader(sampler, batch_size=bs, num_workers=workers, collate_fn=collate,
                                          prefetch_factor=4 if workers else None)
     opt = opt or make_optimizer(model, lr)
+    dev_type = torch.device(device).type
+    amp_dtype = None if amp in (False, None, "none") else (torch.float16 if amp == "fp16" else torch.bfloat16)
+    scaler = torch.amp.GradScaler("cuda", enabled=(amp_dtype == torch.float16 and dev_type == "cuda"))
     rng = np.random.default_rng(1)
     it = iter(loader)
     t0, run, em_run = time.time(), None, None
     model.train()
     for step in range(1, steps + 1):
-        scale = min(1, step / warmup) * (0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * step / steps)))
+        prog = step / steps if not time_budget else max(step / steps, (time.time() - t0) / time_budget)
+        if prog >= 1 and step > 1:
+            break
+        scale = min(1, step / warmup) * (0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * min(prog, 1))))
         for g in opt.param_groups:
             g["lr"] = g["base"] * scale
         b = {k: v.to(device) for k, v in next(it).items()}
-        with torch.autocast(device_type=torch.device(device).type, dtype=torch.bfloat16, enabled=amp):
+        with torch.autocast(device_type=dev_type, dtype=amp_dtype or torch.bfloat16, enabled=amp_dtype is not None):
             outs = model(b)
         loss = loss_fn(outs, b["target"])
         opt.zero_grad()
-        loss.backward()
+        scaler.scale(loss).backward()
+        scaler.unscale_(opt)
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        opt.step()
+        scaler.step(opt)
+        scaler.update()
         with torch.no_grad():
             em = (outs[-1].argmax(-1).view(-1, model.G, model.G) == b["target"]).all((1, 2)).float().mean().item()
         run = loss.item() if run is None else .98 * run + .02 * loss.item()
         em_run = em if em_run is None else .98 * em_run + .02 * em
         if step % 25 == 0:
-            log(f"[{name}] step {step}/{steps} loss {run:.3f} exact {em_run:.3f} lr {opt.param_groups[0]['lr']:.2e} "
+            log(f"[{name}] step {step} loss {run:.3f} exact {em_run:.3f} lr {opt.param_groups[0]['lr']:.2e} "
                 f"{time.time() - t0:.0f}s")
         if state is not None and step % probe_every == 0:
-            sr = probe(model, tasks if probe_tasks is None else [tasks[i] for i in probe_tasks], state, rng, device) \
-                if probe_tasks is None else _probe_subset(model, tasks, probe_tasks, state, rng, device)
+            sr = probe(model, tasks, state, rng, device) if probe_tasks is None else \
+                _probe_subset(model, tasks, probe_tasks, state, rng, device)
             model.train()
             log(f"[{name}]   ladder probe success {sr:.2f}")
-        if eval_fn is not None and eval_every and (step % eval_every == 0 or step == steps):
+        if eval_fn is not None and eval_every and step % eval_every == 0:
             log(f"[{name}]   eval: {eval_fn()}")
             model.train()
+    if eval_fn is not None and eval_every:
+        log(f"[{name}]   eval: {eval_fn()}")
     return opt
 
 
@@ -98,7 +111,9 @@ def main():
     ap.add_argument("--eval-every", type=int, default=2000)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--aug", type=int, default=16, help="augmentations (dihedral x colour perm) per task, each with its own embedding")
-    ap.add_argument("--amp", action="store_true"); ap.add_argument("--device", default="auto")
+    ap.add_argument("--amp", nargs="?", const="bf16", default=False, choices=["bf16", "fp16"], help="mixed precision (fp16 for T4/P100)")
+    ap.add_argument("--minutes", type=float, default=0, help="wall-clock budget: 70%% main phase, 30%% TTRL phase")
+    ap.add_argument("--device", default="auto")
     ap.add_argument("--limit-tasks", type=int, default=0)
     ap.add_argument("--resume", default="")
     a = ap.parse_args()
@@ -129,14 +144,17 @@ def main():
     def save():
         torch.save({"cfg": model.cfg, "state": model.state_dict(), "ids": [t["id"] for t in tasks]}, a.out)
 
+    main_budget = a.minutes * 60 * (0.7 if a.ttrl_steps else 1.0) if a.minutes else None
     opt = train_phase(model, tasks, Sampler(tasks, a.G, a.K, 0, state, A=a.aug), a.steps, a.bs, a.lr, device, a.amp, a.workers,
-                      state, None, a.probe_every, eval_fn if a.eval_solutions else None, a.eval_every, name="main")
+                      state, None, a.probe_every, eval_fn if a.eval_solutions else None, a.eval_every, name="main",
+                      time_budget=main_budget)
     save()
     if a.ttrl_steps:
         print("TTRL phase: evaluation tasks only (demos + their ladder variants)", flush=True)
         train_phase(model, tasks, Sampler(tasks, a.G, a.K, 1, state, only=eval_idx, A=a.aug), a.ttrl_steps, a.bs, a.lr * 0.5,
                     device, a.amp, a.workers, state, eval_idx, a.probe_every,
-                    eval_fn if a.eval_solutions else None, a.eval_every, name="ttrl")
+                    eval_fn if a.eval_solutions else None, a.eval_every, name="ttrl",
+                    time_budget=a.minutes * 60 * 0.3 if a.minutes else None)
         save()
     print("final:", eval_fn() if a.eval_solutions else "done", flush=True)
 

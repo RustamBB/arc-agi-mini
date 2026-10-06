@@ -115,7 +115,7 @@ def decode(logits: np.ndarray, G: int):
 
 
 @torch.no_grad()
-def predict(model, task_idx, test_input, device="cpu", top=2):
+def predict(model, task_idx, test_input, device="cpu", top=2, with_scores=False):
     """Vote over the task's A trained augmentations (each has its own embedding); returns up to ``top`` grids."""
     G, K, A = model.G, model.K, model.A
     items, specs = [], []
@@ -137,7 +137,7 @@ def predict(model, task_idx, test_input, device="cpu", top=2):
         v = votes.setdefault((g.shape, g.tobytes()), [0.0, g])
         v[0] += conf
     ranked = sorted(votes.values(), key=lambda v: -v[0])
-    return [g for _, g in ranked[:top]]
+    return [(v, g) for v, g in ranked[:top]] if with_scores else [g for _, g in ranked[:top]]
 
 
 def evaluate(model, tasks, task_index, device="cpu"):
@@ -154,3 +154,17 @@ def evaluate(model, tasks, task_index, device="cpu"):
             ok += any(c.shape == sol.shape and (c == sol).all() for c in cands)
         credit += ok / len(t["tests"])
     return credit, sum(1 for t in tasks if t["solutions"] is not None)
+
+
+def predict_all(model, tasks, task_index, device="cpu", top=8):
+    """Candidates for every test input: ({task_id: [[{'score','grid'}...] per test input]}, ARC submission dict
+    with attempt_1 / attempt_2 (the input grid is the fallback when the model has no candidate))."""
+    cands, sub = {}, {}
+    for t in tasks:
+        cands[t["id"]], sub[t["id"]] = [], []
+        for q in t["tests"]:
+            ranked = predict(model, task_index[t["id"]], q, device, top, True) if max(q.shape) <= model.G else []
+            cands[t["id"]].append([{"score": float(v), "grid": g.tolist()} for v, g in ranked])
+            grids = [g for _, g in ranked[:2]] or [q]
+            sub[t["id"]].append({"attempt_1": grids[0].tolist(), "attempt_2": (grids[1] if len(grids) > 1 else grids[0]).tolist()})
+    return cands, sub

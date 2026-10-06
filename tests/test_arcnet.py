@@ -163,3 +163,22 @@ def test_compositional_ladder_rejects_interacting_layers_and_attributes_drawn_ce
     vs = compositional_variants(inp, out, rng, "layers", "cumulative", kmax=2)
     k, a, b = vs[0]
     assert k == 1 and (a > 0).sum() == 1 and (b > 0).sum() in (7, 6)  # one layer alone keeps ONLY its own ray
+
+
+def test_time_budget_stops_training_and_predict_all_format():
+    import time
+    from arcnet.data import Sampler, predict_all
+    from arcnet.model import LRRM
+    from arcnet.train import train_phase
+    tasks = _toy_tasks()
+    idx = {t["id"]: i for i, t in enumerate(tasks)}
+    model = LRRM(len(tasks), G=8, K=8, d=16, heads=2, layers=1, loops=1, A=2)
+    t0 = time.time()
+    train_phase(model, tasks, Sampler(tasks, 8, 8, 0, A=2), 10**9, 2, 1e-3, "cpu", log=lambda *_: None, warmup=2,
+                time_budget=2.0)
+    assert time.time() - t0 < 30                                 # 10**9 steps requested, the budget ended it
+    cands, sub = predict_all(model, tasks, idx, "cpu", top=3)
+    t = tasks[0]["id"]
+    assert len(cands[t]) == 1 and len(cands[t][0]) <= 3
+    assert set(sub[t][0]) == {"attempt_1", "attempt_2"}
+    assert np.array(sub[t][0]["attempt_1"]).ndim == 2
