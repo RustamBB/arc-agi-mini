@@ -193,3 +193,9 @@ accepts 0 of 86 (training tasks: 12-15 % and 10.8 % with 93 % precision). The Ka
 as without it. The synthetic data / model / search machinery is therefore only useful as *infrastructure* (e.g. pre-training
 data for a neural model), not as a stand-alone solver for ARC-AGI-2. `tools/analyze_candidate_pool.py` measures how much
 headroom a better answer *ranker* has on top of the Qwen pipeline.
+
+## arcnet: from-scratch layer/object/relation model with LADDER
+`arcnet/` (see `docs/ARCNET.md`): colour layers -> objects -> cells, 14 shape relations, D4-invariant shape classes
+(a rectangle or any complex figure maps to one class id / count wherever and however it appears), class pooling,
+TRM-style recursion, LADDER difficulty ladder + TTRL phase. Sanity task (shape-equivalence recolouring) is solved
+100 % on fresh samples; no ARC-AGI-2 score yet (needs the cloud run in the doc).
