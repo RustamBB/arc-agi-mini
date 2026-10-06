@@ -26,16 +26,24 @@ task's own demonstration pairs (test-time training; evaluation solutions are use
 
 ## LADDER (`arcnet/ladder.py`) — Simonds & Yoneda 2025, adapted
 LADDER = the model recursively builds *simpler variants of a hard problem*, learns on them with a verifiable reward and,
-at test time, learns on variants of the test problem (TTRL). Here:
-* **Variants** from verified demo pairs (same-shape tasks): `subset` (keep 70/50/30 % of the objects, erase the others and the
-  output cells around them) and `crop` (window of 70/50/30 % whose border cuts no object) → ladder levels 1–3; level 0 = demo.
-* **Verification**: variants inherit verified outputs; kept only if still change-carrying and every colour transition they show
-  already occurs in the original pair.
-* **Difficulty-driven schedule**: per (task, level) the model's own exact-match is tracked (EMA); sampling weight peaks at the
-  frontier (success ≈ 0.5), so each task is climbed level by level.
+at test time, learns on variants of the test problem (TTRL). Here the ladder is **compositional** (`--ladder-mode
+compositional`, default): difficulty = the number of units (colour layers or objects) that are present, k = 1, 2, 3, 4.
+* **One layer alone -> a layer with a second one -> with a third ...** (`--ladder-order pairs`): unit i together with each
+  other unit *separately*, then every unit takes the base role, then larger combinations; **or cumulative**
+  (`cumulative`): U1, U1+U2, U1+U2+U3, ... along a random order; `both` (default) uses the two. Units are colour layers
+  and, separately, multicolour objects.
+* **Verified labels** (`restrict`): kept input cells define the variant; erased cells' changes disappear from the output;
+  newly drawn cells are grouped into components and attributed to the kept or erased unit they touch. A variant is
+  **rejected** when units interact (a changed cell next to an erased cell, a drawn component touching both a kept and an
+  erased unit, a floating drawn component) or when the rule is no longer visible / shows a colour transition the original
+  pair does not. Example: "recolour 1-objects that touch colour 2" never yields layer 1 without layer 2.
+* **Difficulty-driven schedule**: per (task, level k) the model's own exact-match is tracked (EMA); sampling weight peaks at the
+  frontier (success ≈ 0.5), so each task is climbed from few units to the full grid.
 * **TTRL phase** (`--ttrl-steps`): the same schedule restricted to the evaluation tasks' demos and their variants.
+* Coverage on the real files: training 392/1000 tasks get variants, **evaluation 59/120** (the random keep-fraction/crop ladder,
+  `--ladder-mode fractional`, reaches 437/1000 and only 35/120).
 * Differences from the paper: supervised cross-entropy instead of GRPO; variants come from rules, not from the model;
-  only same-shape tasks get variants (≈68 % of the tasks).
+  only same-shape tasks get variants (~68 % of the tasks).
 
 ## What has actually been verified (CPU, no GPU/cloud run yet)
 * Shape classes are invariant to rotation/reflection/colour/translation (tests/test_arcnet.py).
@@ -56,8 +64,8 @@ python -m arcnet.train \
   --train-challenges arc-agi_training_challenges.json \
   --eval-challenges  arc-agi_evaluation_challenges.json --eval-solutions arc-agi_evaluation_solutions.json \
   --out arcnet.pt --d 384 --layers 4 --loops 6 --heads 8 --aug 16 --bs 16 --lr 3e-4 --amp \
-  --steps 100000 --ladder --ttrl-steps 30000 --workers 16 --eval-every 5000
+  --steps 100000 --ladder --ladder-mode compositional --ladder-order both --ttrl-steps 30000 --workers 16 --eval-every 5000
 ```
 Memory/speed: attention is dense over ≈976 tokens with a [B,H,T,T] bias (≈0.5 GB at B=32); expect on the order of
-100 samples/s on an A100 (my estimate, unmeasured). Ablations to run (same budget): `--ladder` off/on, `--ttrl-steps 0`,
+100 samples/s on an A100 (my estimate, unmeasured). Ablations to run (same budget): `--ladder` off / `fractional` / `compositional`, `--ladder-order cumulative|pairs|both`, `--ttrl-steps 0`,
 `--aug 1`. Eval credit is printed every `--eval-every` steps (task credit with 2 attempts over the eval demos-trained IDs).

@@ -70,7 +70,7 @@ def subset_variant(inp, out, f, rng):
 def crop_variant(inp, out, f, rng, tries=24):
     H, W = inp.shape
     h, w = max(3, math.ceil(f * H)), max(3, math.ceil(f * W))
-    if h >= H and w >= W:
+    if h > H or w > W or (h >= H and w >= W):
         return None
     union = (inp != 0) | (out != 0)
     comp = find_objects(np.where(union, 1, 0), "m8")
@@ -87,6 +87,92 @@ def crop_variant(inp, out, f, rng, tries=24):
             if _valid(vin, vout, inp, out):
                 return vin.copy(), vout.copy()
     return None
+
+
+# ---- compositional ladder: layers / objects added one at a time or in pairs ------------------------------------
+def restrict(inp, out, keep):
+    """Keep only the input cells in ``keep`` (a boolean grid) and derive the matching output.
+
+    Output cells are attributed to the unit that causes them:
+      * cells of erased input that the rule changed -> dropped; unchanged erased cells -> background;
+      * newly drawn cells (input background, output not) are grouped into 8-connected components; a component that
+        touches only kept cells is kept, only erased cells is dropped, both (an interaction between kept and erased
+        units) or neither -> the variant is rejected (returns None);
+      * a changed kept cell next to an erased cell may have been changed *because of* it -> rejected.
+    """
+    erase = (inp != 0) & ~keep
+    changed = inp != out
+    vin = np.where(erase, 0, inp)
+    vout = np.where(changed, out, vin)
+    vout[erase & changed] = 0
+    near_erased = _dilate(erase)
+    if (changed & keep & near_erased).any():
+        return None
+    drawn = (inp == 0) & (out != 0)
+    if drawn.any():
+        for comp in find_objects(np.where(drawn, out, 0), "m8"):
+            m = np.zeros(inp.shape, bool)
+            m[comp.rows, comp.cols] = True
+            ring = _dilate(m) & ~m
+            touch_keep, touch_erase = (ring & keep).any(), (ring & erase).any()
+            if touch_keep and touch_erase:
+                return None
+            if touch_erase and not touch_keep:
+                vout[m] = 0
+            elif not touch_keep:
+                return None
+    return vin, vout
+
+
+def _units(inp, kind):
+    """Boolean masks of the units a ladder step may add: colour layers or (multicolour) objects."""
+    if kind == "layers":
+        return [inp == c for c in sorted(set(np.unique(inp).tolist()) - {0})]
+    masks = []
+    for o in find_objects(inp, "m8"):
+        m = np.zeros(inp.shape, bool)
+        m[o.rows, o.cols] = True
+        masks.append(m)
+    return masks
+
+
+def compositional_variants(inp, out, rng, kind="layers", mode="both", kmax=4, per_level=3):
+    """Variants with k = 1 .. kmax units kept. mode='cumulative': one chain U1 < U1+U2 < U1+U2+U3 ... (random order);
+    'pairs': unit i together with each other unit separately (then every unit takes the base role), and larger random
+    combinations; 'both': both. Returns [(k, vin, vout)]."""
+    if inp.shape != out.shape:
+        return []
+    units = _units(inp, kind)
+    n = len(units)
+    if n < 2:
+        return []
+    subsets = []
+    if mode in ("cumulative", "both"):
+        order = rng.permutation(n)
+        subsets += [tuple(sorted(order[:k].tolist())) for k in range(1, min(n - 1, kmax) + 1)]
+    if mode in ("pairs", "both"):
+        for base in range(n):                                    # unit `base` with each other unit, separately
+            for other in range(n):
+                if other != base:
+                    subsets.append(tuple(sorted((base, other))))
+        for k in range(3, min(n - 1, kmax) + 1):                 # then larger combinations
+            for _ in range(per_level):
+                subsets.append(tuple(sorted(rng.choice(n, k, replace=False).tolist())))
+        subsets += [(i,) for i in range(n)]                      # each unit alone
+    res, seen, per = [], set(), {}
+    for sub in subsets:
+        k = len(sub)
+        if k >= n or k > kmax or sub in seen or per.get(k, 0) >= per_level:
+            continue
+        seen.add(sub)
+        keep = np.zeros(inp.shape, bool)
+        for i in sub:
+            keep |= units[i]
+        v = restrict(inp, out, keep)
+        if v is not None and _valid(v[0], v[1], inp, out):
+            res.append((k, *v))
+            per[k] = per.get(k, 0) + 1
+    return res
 
 
 def make_variants(inp, out, rng, levels=LEVELS, per_level=2):
@@ -107,15 +193,28 @@ def make_variants(inp, out, rng, levels=LEVELS, per_level=2):
     return res
 
 
-def build_ladder(tasks, seed=0, levels=LEVELS, per_level=2):
-    """Attach ``task['variants'][level] = [(vin, vout), ...]`` to every task (in place)."""
+def build_ladder(tasks, seed=0, levels=LEVELS, per_level=2, mode="compositional", kmax=4, comp_mode="both"):
+    """Attach ``task['variants'][level] = [(vin, vout), ...]`` to every task (in place).
+
+    mode 'compositional' (default): level k = k colour layers / k objects kept (see compositional_variants);
+    mode 'fractional': the earlier random keep-fraction / crop variants (levels 1..len(levels))."""
     rng = np.random.default_rng(seed)
     for t in tasks:
         t["variants"] = {}
         for inp, out in t["demos"]:
-            for lv, vin, vout in make_variants(inp, out, rng, levels, per_level):
+            if mode == "fractional":
+                vs = make_variants(inp, out, rng, levels, per_level)
+            else:
+                vs = []
+                for kind in ("layers", "objects"):
+                    vs += compositional_variants(inp, out, rng, kind, comp_mode, kmax, per_level)
+            for lv, vin, vout in vs:
                 t["variants"].setdefault(lv, []).append((vin, vout))
     return tasks
+
+
+def n_levels(mode="compositional", kmax=4, levels=LEVELS):
+    return len(levels) if mode == "fractional" else kmax
 
 
 class LadderState:

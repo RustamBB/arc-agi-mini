@@ -17,7 +17,7 @@ import numpy as np
 import torch
 
 from .data import Sampler, collate, evaluate, load_tasks
-from .ladder import LEVELS, LadderState, build_ladder, probe
+from .ladder import LEVELS, LadderState, build_ladder, n_levels, probe
 from .model import LRRM, loss_fn
 
 
@@ -88,6 +88,11 @@ def main():
     ap.add_argument("--steps", type=int, default=20000); ap.add_argument("--bs", type=int, default=16)
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--ladder", action="store_true", help="LADDER curriculum over simpler task variants")
+    ap.add_argument("--ladder-mode", choices=["compositional", "fractional"], default="compositional",
+                    help="compositional: add colour layers / objects one at a time or in pairs; fractional: random subsets/crops")
+    ap.add_argument("--ladder-kmax", type=int, default=4, help="largest number of units kept in a compositional variant")
+    ap.add_argument("--ladder-order", choices=["both", "cumulative", "pairs"], default="both",
+                    help="cumulative: U1, U1+U2, U1+U2+U3...; pairs: each unit with each other unit separately; both")
     ap.add_argument("--ttrl-steps", type=int, default=0, help="test-time phase on the evaluation tasks only")
     ap.add_argument("--probe-every", type=int, default=100)
     ap.add_argument("--eval-every", type=int, default=2000)
@@ -108,8 +113,8 @@ def main():
     eval_idx = [idx[t["id"]] for t in eval_tasks]
     state = None
     if a.ladder:
-        build_ladder(tasks)
-        state = LadderState(len(tasks), len(LEVELS))
+        build_ladder(tasks, mode=a.ladder_mode, kmax=a.ladder_kmax, comp_mode=a.ladder_order)
+        state = LadderState(len(tasks), n_levels(a.ladder_mode, a.ladder_kmax))
         n_var = sum(len(v) for t in tasks for v in t["variants"].values())
         print(f"ladder: {n_var} verified simpler variants over {sum(1 for t in tasks if t['variants'])} tasks", flush=True)
     model = LRRM(len(tasks), G=a.G, K=a.K, d=a.d, heads=a.heads, layers=a.layers, loops=a.loops, A=a.aug).to(device)

@@ -71,7 +71,7 @@ def _toy_tasks(n=3, seed=0):
 
 def test_ladder_variants_keep_the_rule_and_are_simpler():
     from arcnet.ladder import build_ladder
-    tasks = build_ladder(_toy_tasks(), seed=1)
+    tasks = build_ladder(_toy_tasks(), seed=1, mode="fractional")
     n = 0
     for t in tasks:
         for lv, pairs in t["variants"].items():
@@ -96,8 +96,8 @@ def test_train_phase_smoke_with_ladder_and_ttrl(tmp_path):
     from arcnet.ladder import LadderState, build_ladder
     from arcnet.model import LRRM
     from arcnet.train import train_phase
-    tasks = build_ladder(_toy_tasks(), seed=2)
-    state = LadderState(len(tasks), 3)
+    tasks = build_ladder(_toy_tasks(), seed=2)           # default: compositional ladder, levels 1..4
+    state = LadderState(len(tasks), 4)
     idx = {t["id"]: i for i, t in enumerate(tasks)}
     model = LRRM(len(tasks), G=8, K=8, d=32, heads=2, layers=1, loops=2)
     logs = []
@@ -123,3 +123,43 @@ def test_augmentation_is_consistent_per_id_and_invertible():
         assert k == k2 and (perm == perm2).all() and perm[0] == 0
         x = apply_perm(d4(g, k), perm)
         assert (d4_inverse(np.argsort(perm)[x], k) == g).all()
+
+
+def _layers_of(a):
+    return tuple(sorted(set(np.unique(a).tolist()) - {0}))
+
+
+def test_compositional_ladder_adds_layers_one_by_one_and_in_pairs():
+    from arcnet.ladder import compositional_variants
+    rng = np.random.default_rng(0)
+    inp = np.zeros((12, 12), dtype=int)
+    inp[1:3, 1:3] = 1; inp[5:7, 5:8] = 2; inp[9, 1:5] = 3; inp[1:3, 9:11] = 4
+    out = inp.copy()
+    for c, n in ((1, 5), (2, 6), (3, 7), (4, 8)):
+        out[inp == c] = n                                     # every layer has its own recolouring rule
+    cum = compositional_variants(inp, out, rng, "layers", "cumulative", kmax=3)
+    chain = [_layers_of(a) for k, a, b in sorted(cum, key=lambda v: v[0])]
+    assert [len(c) for c in chain] == [1, 2, 3]
+    assert set(chain[0]) <= set(chain[1]) <= set(chain[2])    # U1 < U1+U2 < U1+U2+U3
+    pairs = compositional_variants(inp, out, rng, "layers", "pairs", kmax=2, per_level=10)
+    two = {_layers_of(a) for k, a, b in pairs if k == 2}
+    assert two == {(1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)}   # every layer with every other, separately
+    for k, a, b in cum + pairs:                               # the per-layer rules survive in every variant
+        for c, n in ((1, 5), (2, 6), (3, 7), (4, 8)):
+            assert ((a == c) == (b == n)).all()
+
+
+def test_compositional_ladder_rejects_interacting_layers_and_attributes_drawn_cells():
+    from arcnet.ladder import compositional_variants
+    rng = np.random.default_rng(0)
+    inp = np.zeros((10, 10), dtype=int)
+    inp[1:3, 1:3] = 1; inp[1:3, 3] = 2; inp[6:8, 6:8] = 1; inp[5:9, 0] = 3
+    out = inp.copy(); out[1:3, 1:3] = 5                       # 1-objects touching colour 2 become 5
+    vs = compositional_variants(inp, out, rng, "layers", "both", kmax=3)
+    for k, a, b in vs:
+        assert not (1 in _layers_of(a) and 2 not in _layers_of(a))   # layer 1 never appears without its trigger 2
+    inp = np.zeros((8, 8), dtype=int); inp[1, 2] = 1; inp[2, 5] = 2
+    out = inp.copy(); out[2:, 2] = 1; out[3:, 5] = 2          # each pixel shoots a ray down
+    vs = compositional_variants(inp, out, rng, "layers", "cumulative", kmax=2)
+    k, a, b = vs[0]
+    assert k == 1 and (a > 0).sum() == 1 and (b > 0).sum() in (7, 6)  # one layer alone keeps ONLY its own ray
