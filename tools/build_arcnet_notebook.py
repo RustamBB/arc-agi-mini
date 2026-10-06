@@ -31,6 +31,9 @@ pairs (a per-task embedding) in the time you give it. This notebook trains for `
 2. writes `arcnet_candidates.json` (top-8 grids with scores per test input) and `submission_arcnet.json`;
 3. if a Qwen candidate pool (`qwen_candidate_pool.json`) is around, shows how many tasks arcnet solves that Qwen misses.
 
+**Hardware:** one training process per GPU (DDP via `torch.distributed.run`; 4x L4 -> global batch 64, bf16). If NCCL
+misbehaves set `ARCNET_NPROC=1` (single GPU) or `NCCL_P2P_DISABLE=1`.
+
 **Expectations (honest):** a from-scratch model trained for an hour will score low (single digits at best; literature
 for comparable models after days on big GPUs is ~8 % on ARC-AGI-2). This run is a feasibility check: does it run on your GPU,
 how fast, does the loss/exact-match climb, does LADDER's ladder get climbed. Only the *demonstration* pairs of evaluation
@@ -45,82 +48,71 @@ import arcgen, arcnet
 print("code unpacked")
 ''')
 code('''
-import json, math, pathlib, time
+import json, math, pathlib, subprocess, time
 import numpy as np, torch
 
-QUICK = bool(int(os.getenv("ARCNET_QUICK", "0")))        # tiny smoke-test configuration
-MINUTES = float(os.getenv("ARCNET_MINUTES", "60"))       # total training wall-clock (70 % main, 30 % test-time phase)
+QUICK = bool(int(os.getenv("ARCNET_QUICK", "0")))        # tiny smoke-test configuration (CPU, 2 processes, ~1 min)
+MINUTES = float(os.getenv("ARCNET_MINUTES", "90"))       # whole training budget (70 % main phase, 30 % test-time phase)
+NGPU = torch.cuda.device_count()
+NPROC = int(os.getenv("ARCNET_NPROC", NGPU if NGPU else (2 if QUICK else 1)))     # one training process per GPU
 if QUICK:
-    cfg = dict(G=30, K=24, d=32, layers=1, heads=2, loops=2, aug=2, bs=2, limit=8)
-    MINUTES = 0.7
-else:                                                    # fits a 16 GB T4 / P100; raise d, layers, bs on bigger GPUs
-    cfg = dict(G=30, K=64, d=256, layers=4, heads=8, loops=6, aug=16, bs=8, limit=0)
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-AMP = False
-if DEVICE == "cuda":
-    AMP = "bf16" if torch.cuda.is_bf16_supported() else "fp16"      # T4 / P100: no bf16
-WORKERS = 0 if QUICK else max(1, min(4, (os.cpu_count() or 2) - 1))
+    MINUTES = 0.8
+    flags = "--G 30 --K 24 --dim 32 --layers 1 --heads 2 --loops 2 --aug 2 --bs 2 --limit-tasks 8 --workers 0 --probe-every 20 --eval-every 100000"
+elif NGPU >= 4:                                          # 4 x L4 (24 GB, bf16): global batch 64
+    flags = "--G 30 --K 64 --dim 384 --layers 4 --heads 8 --loops 6 --aug 16 --bs 16 --lr 4e-4 --probe-every 200 --eval-every 4000"
+else:                                                    # 1-2 smaller GPUs (T4/P100: fp16)
+    flags = "--G 30 --K 64 --dim 256 --layers 4 --heads 8 --loops 6 --aug 16 --bs 8 --lr 3e-4 --probe-every 200 --eval-every 3000"
+amp = ""
+if NGPU:
+    amp = "--amp bf16" if torch.cuda.is_bf16_supported() else "--amp fp16"
+cpus = os.cpu_count() or 2
+workers = "" if QUICK else f"--workers {max(1, min(3, (cpus - 1) // max(1, NPROC)))}"
 ROOT = pathlib.Path(os.getenv("ARC_ROOT", "/kaggle/input/competitions/arc-prize-2026-arc-agi-2"))
 RERUN = bool(os.getenv("KAGGLE_IS_COMPETITION_RERUN"))
 f_train = ROOT / "arc-agi_training_challenges.json"
 f_eval = ROOT / ("arc-agi_test_challenges.json" if RERUN else "arc-agi_evaluation_challenges.json")
 f_sol = None if RERUN else ROOT / "arc-agi_evaluation_solutions.json"
-print("device", DEVICE, "| amp", AMP, "| workers", WORKERS, "| minutes", MINUTES, "| files ok:", f_train.is_file(), f_eval.is_file())
+print(f"GPUs {NGPU} | processes {NPROC} | cpus {cpus} | amp '{amp}' | minutes {MINUTES} | files ok: {f_train.is_file()} {f_eval.is_file()}")
 ''')
 code('''
-from arcnet.data import Sampler, evaluate, load_tasks, predict_all
-from arcnet.ladder import LadderState, build_ladder, n_levels
-from arcnet.model import LRRM
-from arcnet.train import train_phase
-
-train_tasks = load_tasks(str(f_train))
-eval_tasks = load_tasks(str(f_eval), str(f_sol) if f_sol and f_sol.is_file() else None)
-if cfg["limit"]:
-    train_tasks, eval_tasks = train_tasks[:cfg["limit"]], eval_tasks[:cfg["limit"]]
-tasks = train_tasks + eval_tasks
-idx = {t["id"]: i for i, t in enumerate(tasks)}
-eval_idx = [idx[t["id"]] for t in eval_tasks]
-build_ladder(tasks, mode="compositional", kmax=4, comp_mode="both")
-state = LadderState(len(tasks), n_levels("compositional", 4))
-lv = {}
-for t in tasks:
-    for l, v in t["variants"].items(): lv[l] = lv.get(l, 0) + len(v)
-print(f"{len(train_tasks)} training + {len(eval_tasks)} evaluation tasks | ladder variants per level {dict(sorted(lv.items()))}")
-''')
-code('''
-model = LRRM(len(tasks), G=cfg["G"], K=cfg["K"], d=cfg["d"], heads=cfg["heads"], layers=cfg["layers"],
-             loops=cfg["loops"], A=cfg["aug"]).to(DEVICE)
-print(f"{sum(p.numel() for p in model.parameters())/1e6:.1f}M parameters")
-have_sol = any(t["solutions"] for t in eval_tasks)
-def eval_fn():
-    if not have_sol: return "no solutions (rerun mode)"
-    credit, n = evaluate(model, eval_tasks, idx, DEVICE)
-    return f"public-eval credit {credit:.2f}/{n}"
+cmd = [sys.executable, "-m", "torch.distributed.run", f"--nproc_per_node={NPROC}", "--master_port=29631", "-m", "arcnet.train",
+       "--train-challenges", str(f_train), "--eval-challenges", str(f_eval), "--out", "arcnet.pt", "--outdir", ".",
+       "--ladder", "--ladder-mode", "compositional", "--ladder-order", "both", "--ttrl-steps", "10000000000",
+       "--steps", "10000000000", "--minutes", str(MINUTES)] + flags.split() + amp.split() + workers.split()
+if f_sol and f_sol.is_file():
+    cmd += ["--eval-solutions", str(f_sol)]
+env = {**os.environ, "PYTHONPATH": os.getcwd(), "OMP_NUM_THREADS": "1", "TOKENIZERS_PARALLELISM": "false"}
 t0 = time.time()
-quiet = (lambda m: print(m) if QUICK or "eval" in m or "probe" in m or int(m.split("step ")[1].split()[0]) % 200 == 0 else None)
-opt = train_phase(model, tasks, Sampler(tasks, cfg["G"], cfg["K"], 0, state, A=cfg["aug"]), 10**9, cfg["bs"], 3e-4, DEVICE,
-                  AMP, WORKERS, state, None, 200, eval_fn, 10**9 if QUICK else 3000, quiet, "main",
-                  time_budget=MINUTES * 60 * 0.7)
-print("--- test-time phase: evaluation tasks only (demos + their ladder variants)")
-train_phase(model, tasks, Sampler(tasks, cfg["G"], cfg["K"], 1, state, only=eval_idx, A=cfg["aug"]), 10**9, cfg["bs"], 1.5e-4,
-            DEVICE, AMP, WORKERS, state, eval_idx, 200, eval_fn, 10**9 if QUICK else 3000, quiet, "ttrl",
-            time_budget=MINUTES * 60 * 0.3)
-torch.save({"cfg": model.cfg, "state": model.state_dict(), "ids": [t["id"] for t in tasks]}, "arcnet.pt")
-print(f"training done in {(time.time()-t0)/60:.1f} min")
+proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+keep = ("ladder:", "parameters", "eval", "probe", "TTRL", "final", "wrote", "Error", "error", "Traceback", "NCCL")
+for line in proc.stdout:                                  # print only the useful lines (+ every 200th training step)
+    if line.startswith(keep) or any(k in line for k in keep) or (QUICK and "step" in line) or \
+            ("] step " in line and int(line.split("step ")[1].split()[0]) % 200 == 0):
+        print(line.rstrip())
+rc = proc.wait()
+print(f"training process exited with code {rc} after {(time.time()-t0)/60:.1f} min")
+assert rc == 0, "training failed - see the lines above (if NCCL hangs/errors: set ARCNET_NPROC=1 or NCCL_P2P_DISABLE=1)"
 ''')
 code('''
-cands, sub = predict_all(model, eval_tasks, idx, DEVICE, top=8)
-json.dump(cands, open("arcnet_candidates.json", "w")); json.dump(sub, open("submission_arcnet.json", "w"))
-print("wrote arcnet_candidates.json, submission_arcnet.json")
+from arcnet.data import load_tasks
+eval_tasks = load_tasks(str(f_eval), str(f_sol) if f_sol and f_sol.is_file() else None)
+if QUICK:
+    eval_tasks = eval_tasks[:8]
+cands = json.load(open("arcnet_candidates.json"))
+have_sol = any(t["solutions"] for t in eval_tasks)
+print("candidates for", len(cands), "tasks written to arcnet_candidates.json / submission_arcnet.json / arcnet.pt")
 if have_sol:
     eq = lambda a, b: np.array_equal(np.asarray(a), np.asarray(b))
     rows = []
     for t in eval_tasks:
         for qi, sol in enumerate(t["solutions"]):
             cs = [c["grid"] for c in cands[t["id"]][qi]]
-            rows.append((t["id"], eq(cs[0], sol) if cs else False, any(eq(c, sol) for c in cs[:2]), any(eq(c, sol) for c in cs)))
-    n = len(rows)
-    print(f"queries: {n} | top-1 right {sum(r[1] for r in rows)} | top-2 right {sum(r[2] for r in rows)} | in top-8 {sum(r[3] for r in rows)}")
+            rows.append((t["id"], qi, eq(cs[0], sol) if cs else False, any(eq(c, sol) for c in cs[:2]), any(eq(c, sol) for c in cs)))
+    print(f"queries: {len(rows)} | top-1 right {sum(r[2] for r in rows)} | top-2 right {sum(r[3] for r in rows)} | in top-8 {sum(r[4] for r in rows)}")
+    credit = {}
+    for tid, qi, _, ok2, _ in rows:
+        credit.setdefault(tid, []).append(ok2)
+    print(f"task credit (2 attempts): {sum(np.mean(v) for v in credit.values()):.2f} / {len(credit)}")
     here = [pathlib.Path("qwen_candidate_pool.json"), pathlib.Path("/kaggle/working/qwen_candidate_pool.json")]
     pool_f = next((p for p in here if p.is_file()), None)
     if pool_f is None and pathlib.Path("/kaggle/input").exists():
@@ -128,13 +120,9 @@ if have_sol:
     if pool_f:                                           # complementarity with the Qwen pipeline
         pool = json.load(open(pool_f))
         sols = {t["id"]: t["solutions"] for t in eval_tasks}
-        qwen_ok, arc_ok = set(), set()
-        for key, row in pool.items():
-            tid, qi = key.rsplit("_", 1)
-            if tid in sols and any(eq(c, sols[tid][int(qi)]) for c in row["hybrid_top2"]):
-                qwen_ok.add(key)
-        arc_ok = {f"{t['id']}_{qi}" for t in eval_tasks for qi, sol in enumerate(t["solutions"])
-                  if any(eq(c["grid"], sol) for c in cands[t["id"]][qi][:2])}
+        qwen_ok = {k for k, row in pool.items() if k.rsplit("_", 1)[0] in sols
+                   and any(eq(c, sols[k.rsplit("_", 1)[0]][int(k.rsplit("_", 1)[1])]) for c in row["hybrid_top2"])}
+        arc_ok = {f"{tid}_{qi}" for tid, qi, _, ok2, _ in rows if ok2}
         print(f"queries right: Qwen hybrid {len(qwen_ok)} | arcnet {len(arc_ok)} | arcnet-only {len(arc_ok - qwen_ok)} "
               f"| both {len(arc_ok & qwen_ok)}  (arcnet-only queries are what an ensemble could add)")
     else:

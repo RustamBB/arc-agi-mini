@@ -63,7 +63,7 @@ pip install numpy torch
 python -m arcnet.train \
   --train-challenges arc-agi_training_challenges.json \
   --eval-challenges  arc-agi_evaluation_challenges.json --eval-solutions arc-agi_evaluation_solutions.json \
-  --out arcnet.pt --d 384 --layers 4 --loops 6 --heads 8 --aug 16 --bs 16 --lr 3e-4 --amp \
+  --out arcnet.pt --dim 384 --layers 4 --loops 6 --heads 8 --aug 16 --bs 16 --lr 3e-4 --amp \
   --steps 100000 --ladder --ladder-mode compositional --ladder-order both --ttrl-steps 30000 --workers 16 --eval-every 5000
 ```
 Memory/speed: attention is dense over ≈976 tokens with a [B,H,T,T] bias (≈0.5 GB at B=32); expect on the order of
@@ -86,3 +86,15 @@ right that the Qwen hybrid misses (the only reason to ensemble it). Verified her
 real ARC files (tiny CPU config); data loading is ~210 samples/s per CPU worker (4.7 ms), enough for a GPU. **Not
 verified**: GPU speed/memory, the fp16 path used on T4/P100 (GradScaler), and any score — expect low numbers after an hour.
 Rebuild after code changes: `python tools/build_arcnet_notebook.py`.
+
+### Several GPUs (Kaggle 4 x L4): DDP
+`python -m torch.distributed.run --nproc_per_node=4 -m arcnet.train <flags>` — one process per GPU, global batch =
+`--bs` x GPUs, gradients averaged by DDP. Rank 0's clock decides progress / stop for everybody (so learning rate and step
+counts are identical on all ranks); evaluation, checkpoint and candidate export run on rank 0 while the others wait at
+a barrier (NCCL timeout 120 min). Each rank keeps its own LADDER success table (no extra collectives). The notebook
+picks `--dim 384 --layers 4 --loops 6 --aug 16 --bs 16 --lr 4e-4` with bf16 when it sees >= 4 GPUs (24 GB each:
+activations are roughly 0.3 GB per sample by my estimate, so there is room to raise `--bs` or `--dim`).
+Verified: the DDP path (gloo, 2 CPU processes) runs both phases, evaluation, export and exits cleanly on the real ARC files;
+**not verified**: NCCL on L4s, throughput (my back-of-envelope: ~100 samples/s per GPU, unmeasured) and any score.
+If NCCL hangs: `ARCNET_NPROC=1` (one GPU) or `NCCL_P2P_DISABLE=1`. The flag `--d` was renamed `--dim` (torchrun
+mistakes `--d` for one of its own options).
