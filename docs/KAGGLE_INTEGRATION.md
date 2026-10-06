@@ -57,3 +57,20 @@ Prints the credit of every submission variant (Qwen baseline / critic / v2 / v3 
 processed and accepted, how many accepted predictions were right or wrong against the public solutions, the rejection
 reasons, and the queries where it replaced attempt_2. The branch can only help on queries where Qwen's attempt_1 is wrong AND
 v2/v3 accepted nothing AND arcgen accepted a correct program — on the public evaluation set that is expected to be very few.
+
+## Headroom analysis of a real run (public evaluation, 120 tasks / 172 test queries)
+From `qwen_candidate_pool.json` + `arc-agi_evaluation_solutions.json` (`tools/analyze_candidate_pool.py`):
+
+| submitted attempts | task credit |
+|---|---|
+| Qwen top-1 only | 29.0 |
+| Qwen top-2 | 32.5 |
+| `hybrid_top2` (critic + v2 + v3, as submitted) | 33.5 |
+| oracle: correct answer anywhere in Qwen's top-8 | 38.5 |
+
+* Rank of the first correct Qwen candidate: rank 1 for 38 queries, 2 for 5, 3 for 4, 4 for 2, 5 for 3 — **none beyond 5**;
+  **120 of 172 queries (70 %) have no correct candidate at all.** A perfect re-ranker could win at most +5 credit
+  (realistically 1-2); the ceiling is *candidate generation*, not selection.
+* 24 queries have fewer than 2 Qwen candidates (9 have none). Fixed trivial fallbacks (identity, flips, rotations, scaling,
+  crop, mirror, ...) are never the true answer — nothing to win there.
+* The v2/v3/critic layer added +1.0 over plain Qwen top-2; arcgen added nothing.
