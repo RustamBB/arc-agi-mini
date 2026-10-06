@@ -53,7 +53,7 @@ beam search. It runs **in a background process while Qwen is working**, so it is
 A prediction is accepted only if (1) a program reproduces every demonstration, (2) leave-one-demo-out search with the same
 operation skeleton predicts each held-out demo exactly, (3) programs found with different seeds agree on every query, and
 (4) every query output is a valid grid that differs from its input. It may only fill attempt_2 when v2 and v3 accepted nothing;
-Qwen's attempt_1 is never changed. Search is bounded, not exhaustive. Disable with `ARC_ARCGEN=0`.
+Qwen's attempt_1 is never changed. Search is bounded, not exhaustive. **Off by default** (`ARC_ARCGEN=1` to enable): measured 0 of 86 public-evaluation tasks accepted.
 Optional: attach `arcgen_gpt.pt` (the small program-proposal model) to bias the search; it is not required.
 """
 
@@ -61,7 +61,7 @@ LAUNCH = '''
 import os, sys, json, subprocess, time
 from pathlib import Path
 
-ARCGEN_ENABLED = os.getenv("ARC_ARCGEN", "1") == "1"
+ARCGEN_ENABLED = os.getenv("ARC_ARCGEN", "0") == "1"   # OFF by default: 0/120 public-eval tasks accepted (see docs/KAGGLE_INTEGRATION.md)
 ARCGEN_OUT = "/kaggle/working/arcgen_predictions.jsonl"
 ARCGEN_PROC = None
 if ARCGEN_ENABLED:

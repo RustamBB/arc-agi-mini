@@ -346,3 +346,13 @@ def test_analyze_kaggle_run(tmp_path):
         {"task_id": "t1", "accepted": True, "audit": {}, "predictions": [a]}) + "\n")
     out = "\n".join(analyze(tmp_path, sols))
     assert "+1.00 (1 tasks gained)" in out and "1 right, 0 wrong" in out
+
+
+def test_candidate_pool_oracle():
+    import sys
+    sys.path.insert(0, "tools")
+    from analyze_candidate_pool import oracle
+    a, b = [[1]], [[2]]
+    pool = {"t_0": {"qwen_top8": [b, b, a]}, "u_0": {"qwen_top8": [a]}}
+    r = oracle(pool, {"t": [a], "u": [a]})
+    assert r[1] == 1 and r[2] == 1 and r[4] == 2

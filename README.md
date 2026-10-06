@@ -185,3 +185,11 @@ step-by-step solutions → write a new family → build a mixed dataset → trai
 evaluation → model+search hybrid on a held-out (or real) task. `QUICK = True` runs the whole thing in ~1 minute on CPU.
 Whether curated data helps the model is an open question: compare `--kind random` vs `--kind mixed` at equal size on
 `tools/eval_model.py --real` before committing to a long run.
+
+## Reality check on ARC-AGI-2 evaluation (important)
+
+On the public **evaluation** tasks the 108-op bank fits **0 of 120** tasks (demos only) and the fail-closed Kaggle branch
+accepts 0 of 86 (training tasks: 12-15 % and 10.8 % with 93 % precision). The Kaggle run with the branch scored the same
+as without it. The synthetic data / model / search machinery is therefore only useful as *infrastructure* (e.g. pre-training
+data for a neural model), not as a stand-alone solver for ARC-AGI-2. `tools/analyze_candidate_pool.py` measures how much
+headroom a better answer *ranker* has on top of the Qwen pipeline.

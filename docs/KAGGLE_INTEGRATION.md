@@ -13,7 +13,7 @@ changed. **Upload it to Kaggle as is — no extra dataset or internet is needed*
 | `run_search_hybrid` cell | after Layer-ops v2 and Transformer-search v3: **if neither accepted**, an accepted arcgen prediction takes the *attempt_2* slot through the existing `promote_verified_operation`. Qwen attempt_1 is untouched; the existing assert still guards it. Audit gets `arcgen` / `arcgen_changed_attempt_2`, coverage gets `arcgen_accepted_tasks` |
 | final cell | new variant `transformer_search_v3_arcgen` scored next to the old four; `submission.json` = that variant, `submission_v3_without_arcgen.json` = the old behaviour (set `ARC_ARCGEN=0` to disable the branch entirely) |
 
-Environment variables: `ARC_ARCGEN` (1), `ARC_ARCGEN_WORKERS` (2), `ARC_ARCGEN_SECONDS` (45 per task),
+Environment variables: `ARC_ARCGEN` (**0 = off by default** since the public-evaluation result below), `ARC_ARCGEN_WORKERS` (2), `ARC_ARCGEN_SECONDS` (45 per task),
 `ARC_ARCGEN_WAIT_SECONDS` (600). Optional: attach `arcgen_gpt.pt` (= `models/gpt5m_synthetic.pt`) as a dataset to bias the
 search with the small program-proposal model — not needed, benefit is small and untested on Kaggle.
 
@@ -22,7 +22,17 @@ A prediction is accepted only if (1) a bank program reproduces every demo, (2) *
 op skeleton predicts each held-out demo exactly, (3) programs found with different seeds agree on every query, (4) outputs are
 valid grids that differ from their inputs. The search is a bounded beam search, not exhaustive.
 
-## Measured (no Kaggle run was possible here)
+## Result on the real public evaluation set (what actually happened)
+Kaggle score of the integrated notebook: 29.33 (raw task credit of 120 tasks) — no gain. Reason, measured locally on the
+public evaluation challenges (`arc-agi_evaluation_challenges.json`):
+* hold-out protocol (86 tasks with >= 3 demos, 10 s each): **0 accepted**;
+* plain demo fitting with the full beam search (40 s, no safeguards) on all 120 tasks: **0 / 120** (the same search fits
+  12-15 % of the *training* tasks); median residual error of the best program 13.6 % of target cells.
+ARC-AGI-2 evaluation tasks need semantic rules (reading a legend/key, counting neighbours, conditional gravity with
+obstacles...) that a library of generic grid operations does not express. So the branch is **off by default** now. The
+numbers below were measured on the *training* tasks and do not transfer.
+
+## Measured on training tasks (no Kaggle run was possible here)
 * **Hold-out protocol on 400 ARC-AGI-2 *training* tasks** (`tools/eval_branch_holdout.py`: demos minus the last one, the last
   demo is the hidden test, 10 s/task): accepted 43 (10.8 %), **40 correct → precision 93 %**, 10.0 % of tasks answered correctly.
   Training tasks are easier than the evaluation/test set, so expect a much lower acceptance rate there.
